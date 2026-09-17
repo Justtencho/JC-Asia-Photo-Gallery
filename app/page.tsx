@@ -1497,7 +1497,7 @@ saveProjectBtn!.addEventListener('click', async () => {
     htmlTemplate = htmlTemplate.replace('</head>', injectedScript);
 
     // 3. Ensure it opens in Edit Mode
-    htmlTemplate = htmlTemplate.replace('<body class="view-mode">', '<body class="edit-mode">');
+    htmlTemplate = htmlTemplate.replace(/<body[^>]*>/, '<body class="edit-mode">');
 
     // 4. Trigger the download
     const blob = new Blob([htmlTemplate], { type: 'text/html' });
@@ -1526,12 +1526,13 @@ exportBtn!.addEventListener('click', async () => {
     let htmlTemplate = await res.text();
 
     const exportState = JSON.parse(JSON.stringify(state));
-    exportState.galleryPassword = null; // Nuke password for safety
+    exportState.galleryPassword = null; // Nuke plain password, but keep authCheck so the unlock box appears
 
     const injectedScript = `<script id="embeddedDataScript">window.__EMBEDDED_GALLERY_DATA__ = ${JSON.stringify(exportState)};</script>\n</head>`;
     htmlTemplate = htmlTemplate.replace('</head>', injectedScript);
 
-    // Force View Mode & Locked status
+    // Force View Mode & Locked status. 
+    // Your CSS will completely hide the buttons naturally, without crashing the JavaScript.
     htmlTemplate = htmlTemplate.replace(/<body[^>]*>/, '<body class="view-mode locked">');
 
     const blob = new Blob([htmlTemplate], { type: 'text/html' });
