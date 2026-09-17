@@ -666,7 +666,12 @@ function renderGallery(){
   if(section.photos.length === 0 && !isEdit){
     const empty = document.createElement('div');
     empty.className = 'section-empty';
-    empty.textContent = 'No items in this section yet.';
+    // Check if it's an exported shareable view and display a loading notice
+    if (body.classList.contains('locked') && !window.navigator.onLine) {
+      empty.textContent = 'Loading photos from cloud storage...';
+    } else {
+      empty.textContent = 'No items in this section yet.';
+    }
     galleryArea!.appendChild(empty);
     return;
   }
