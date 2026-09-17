@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a1a1a;
+    --muted:#8a8a8a;
+    --line:#e7e7e7;
+    --line-strong:#1a1a1a;
+    --bg:#ffffff;
+    --gap: 28px;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Raleway', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- Top bar ---------- */
+  header.site-head{
+    position:sticky;
+    top:0;
+    background:var(--bg);
+    z-index:50;
+    border-bottom:1px solid var(--line);
+  }
+
+  .head-inner{
+    max-width:1200px;
+    margin:0 auto;
+    padding:22px 40px 0 40px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    flex-wrap: wrap;
+    gap:24px;
+  }
+
+  .brand{
+    font-weight:400;
+    font-size:22px;
+    letter-spacing:0.5px;
+    color:var(--ink);
+    background:transparent;
+    border:none;
+    font-family:'Raleway', sans-serif;
+    padding:0 0 18px 0;
+    outline:none;
+    cursor:text;
+    min-width:120px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom:18px;
+  }
+
+  /* Secure Auth UI */
+  .auth-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .edit-pwd-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .edit-pwd-wrapper label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .edit-pwd-input {
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    width: 140px;
+    transition: border-color 0.15s;
+  }
+  .edit-pwd-input:focus { border-color: var(--ink); }
+  
+  .auth-input {
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    width: 140px;
+    transition: border-color 0.15s;
+  }
+  .auth-input:focus { border-color: var(--ink); }
+  .auth-btn {
+    background: var(--ink);
+    color: #fff;
+    border: 1px solid var(--ink);
+    padding: 7px 14px;
+    border-radius: 16px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+  }
+  .auth-btn:hover { opacity: 0.85; }
+  .auth-msg {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* High-Capacity Storage Indicator */
+  .storage-meter {
+    display: none;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    padding-left: 16px;
+    border-left: 1px solid var(--line);
+  }
+  body.edit-mode .storage-meter { display: flex; }
+  .storage-text {
+    font-size: 11px;
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .storage-badge {
+    font-size: 9px;
+    color: #27ae60;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .mode-toggle{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-shrink:0;
+    padding-left: 16px;
+    border-left: 1px solid var(--line);
+  }
+  .mode-toggle button{
+    font-family:'Raleway', sans-serif;
+    font-size:12px;
+    letter-spacing:0.6px;
+    color:var(--muted);
+    background:none;
+    border:1px solid var(--line);
+    padding:7px 14px;
+    border-radius:20px;
+    cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .mode-toggle button:hover{ border-color:var(--ink); color:var(--ink); }
+  .mode-toggle button.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  /* Mobile Tabs Toggle */
+  .mobile-tabs-toggle { display: none; }
+
+  nav.tabs{
+    max-width:1200px;
+    margin:0 auto;
+    padding:0 40px;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:2px;
+  }
+
+  .tab{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:12px 18px;
+    cursor:pointer;
+    color:var(--muted);
+    font-size:15px;
+    letter-spacing:0.2px;
+    font-weight:400;
+    border-bottom:2px solid transparent;
+    transition:color .15s ease;
+    white-space:nowrap;
+  }
+  .tab:hover{ color:var(--ink); }
+  .tab.active{ color:var(--ink); font-weight:500; border-bottom:2px solid var(--ink); }
+  .tab .tab-name{ outline:none; }
+  
+  .tab .remove-tab, .folder-tab-header .remove-tab, .dropdown-item .remove-tab {
+    display:none; color:var(--muted); font-size:14px; line-height:1; padding:2px;
+  }
+  body.edit-mode .tab .remove-tab, body.edit-mode .folder-tab-header .remove-tab, body.edit-mode .dropdown-item .remove-tab { 
+    display:inline-block; 
+  }
+  .tab .remove-tab:hover, .folder-tab-header .remove-tab:hover, .dropdown-item .remove-tab:hover { color:#c0392b; }
+
+  /* ---------- Dropdown Folders ---------- */
+  .folder-tab {
+    position: relative; color: var(--muted); font-size: 15px; letter-spacing: 0.2px; font-weight: 400;
+    border-bottom: 2px solid transparent; transition: color .15s ease;
+  }
+  .folder-tab:hover { color: var(--ink); }
+  .folder-tab.active { color: var(--ink); font-weight: 500; border-bottom: 2px solid var(--ink); }
+  
+  .folder-tab-header { display: flex; align-items: center; gap: 8px; padding: 12px 18px; cursor: pointer; white-space: nowrap; }
+  .folder-tab-header .folder-name { outline: none; }
+  .folder-tab-header .chevron { display: flex; align-items: center; justify-content: center; opacity: 0.6; transition: transform 0.2s ease; }
+  .folder-tab.open .chevron { transform: rotate(180deg); }
+
+  .dropdown-menu {
+    display: none; position: absolute; top: 100%; left: 0; background: var(--bg); border: 1px solid var(--line);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.08); min-width: 180px; z-index: 100; flex-direction: column;
+    padding: 6px 0; border-radius: 4px;
+  }
+  .folder-tab.open .dropdown-menu { display: flex; }
+
+  .dropdown-item {
+    padding: 12px 18px; font-size: 14px; color: var(--muted); cursor: pointer; display: flex; justify-content: space-between;
+    align-items: center; transition: background 0.15s, color 0.15s;
+  }
+  .dropdown-item:hover { background: #fafafa; color: var(--ink); }
+  .dropdown-item.active { color: var(--ink); font-weight: 500; }
+  .dropdown-item .tab-name { outline: none; }
+
+  .add-tab-container { display: none; align-items: center; }
+  body.edit-mode .add-tab-container { display: flex; }
+
+  .add-tab {
+    display: flex; align-items: center; gap: 6px; padding: 12px 10px; color: var(--muted); font-size: 15px;
+    cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .add-tab:hover{ color:var(--ink); }
+  .add-tab-input{
+    display:none; font-family:'Raleway', sans-serif; font-size:15px; border:none; border-bottom:1px solid var(--ink);
+    outline:none; padding:12px 4px; margin: 0 10px; width:140px; background:transparent; color:var(--ink);
+  }
+
+  /* ---------- Gallery ---------- */
+  main{ max-width:1200px; margin:0 auto; padding:48px 40px 100px 40px; }
+
+  .section-empty{ text-align:center; color:var(--muted); font-size:15px; padding:100px 20px; letter-spacing:0.3px; }
+
+  .grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:var(--gap); }
+
+  @media (max-width: 860px){ .grid{ grid-template-columns:repeat(2, 1fr); } }
+
+  /* ---------- Mobile Responsiveness ---------- */
+  @media (max-width: 540px){
+    .grid{ grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .head-inner{ padding: 18px 20px 14px 20px; flex-direction: column; align-items: stretch; gap: 16px; }
+    .header-actions { padding-bottom: 0; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 16px; flex-wrap: wrap; }
+    .storage-meter { padding-left: 0; border-left: none; align-items: flex-start; }
+    .mode-toggle { padding-left: 0; border-left: none; }
+    main{ padding:32px 20px 80px 20px; }
+
+    .mobile-tabs-toggle { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: #fafafa; border-top: 1px solid var(--line); cursor: pointer; font-size: 15px; font-weight: 500; user-select: none; }
+    .mobile-tabs-toggle .chevron { transition: transform 0.2s ease; }
+    .mobile-tabs-toggle.open .chevron { transform: rotate(180deg); }
+    
+    nav.tabs{ 
+      display: none; position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg); flex-direction: column;
+      align-items: stretch; padding: 0; border-bottom: 1px solid var(--line); box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+    nav.tabs.open { display: flex; }
+    
+    .tab, .folder-tab { border-bottom: 1px solid var(--line) !important; border-left: 3px solid transparent; }
+    .tab.active, .folder-tab.active { border-left: 3px solid var(--ink) !important; background: #fafafa; }
+    .folder-tab-header { width: 100%; padding: 14px 20px; }
+    
+    .dropdown-menu { position: static; box-shadow: none; border: none; border-top: 1px solid var(--line); width: 100%; padding: 0; background: #fbfbfb; border-radius: 0; }
+    .dropdown-item { padding: 14px 20px 14px 40px; border-bottom: 1px solid var(--line); }
+    .dropdown-item:last-child { border-bottom: none; }
+    .add-tab-container { padding: 14px 20px; flex-wrap: wrap; }
+    .add-tab-input { width: 100%; margin: 10px 0 0 0; }
+  }
+
+  .photo-card{
+    position:relative; aspect-ratio:1/1; overflow:hidden; background:#ffffff; cursor:pointer; border: 1px solid transparent;
+  }
+  .photo-card img{ width:100%; height:100%; object-fit:contain; display:block; transition:transform .5s ease; }
+  .photo-card:hover img{ transform:scale(1.035); }
+
+  /* --- Security Lock Aesthetics --- */
+  .locked-item {
+    background: #f0f0f0 !important;
+    border: 1px solid var(--line);
+    cursor: default;
+  }
+  .locked-item img, .locked-item .text-content {
+    filter: blur(30px);
+    opacity: 0.4;
+    pointer-events: none;
+    user-select: none;
+  }
+  .locked-overlay {
+    display: none; position: absolute; inset: 0; align-items: center; justify-content: center;
+    font-size: 32px; z-index: 5; pointer-events: none; opacity: 0.8;
+  }
+  .locked-item .locked-overlay { display: flex; }
+
+  img{ -webkit-user-drag:none; user-drag:none; -webkit-touch-callout:none; user-select:none; -webkit-user-select:none; }
+
+ /* ---------- Text Note Cards ---------- */
+  .photo-card.text-type {
+    display: flex; flex-direction: column; padding: 24px; background: #ffffff; border: 1px solid transparent; cursor: default;
+  }
+  
+  .text-content {
+    flex: 1; width: 100%; height: 100%; outline: none; overflow-y: auto; font-family: 'Raleway', sans-serif;
+    font-size: 16px; line-height: 1.6; color: var(--ink); white-space: pre-wrap; word-break: break-word;
+  }
+  body.view-mode .text-content { cursor: pointer; }
+  
+  .text-content::-webkit-scrollbar { width: 6px; }
+  .text-content::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 4px; }
+  .text-content::-webkit-scrollbar-track { background: transparent; }
+
+  /* Typography Toolbar */
+  .text-card-toolbar {
+    display: none; position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.98);
+    border: 1px solid var(--line); border-radius: 24px; padding: 6px 14px; gap: 8px; z-index: 10; box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    align-items: center; white-space: nowrap;
+  }
+  body.edit-mode .photo-card.text-type:focus-within .text-card-toolbar,
+  body.edit-mode .photo-card.text-type:hover .text-card-toolbar {
+    display: flex;
+  }
+  .toolbar-label { font-size: 11px; color: var(--muted); margin-right: 4px; letter-spacing: 0.3px; font-weight: 500; }
+  .text-card-toolbar button {
+    background: none; border: 1px solid var(--line); font-family: 'Raleway', sans-serif; font-size: 11px; font-weight: 600;
+    padding: 6px 12px; cursor: pointer; border-radius: 12px; color: var(--ink); transition: background 0.15s;
+  }
+  .text-card-toolbar button:hover { background: #f0f0f0; }
+
+  /* Controls */
+  .photo-remove{
+    display:none; position:absolute; top:8px; right:8px; width:26px; height:26px; border-radius:50%;
+    background:rgba(255,255,255,0.95); color:var(--ink); align-items:center; justify-content:center; font-size:15px;
+    cursor:pointer; z-index:15; border:1px solid var(--line); box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  body.edit-mode .photo-remove{ display:flex; }
+  .photo-remove:hover{ background:#c0392b; color:#fff; border-color:#c0392b; }
+
+  .photo-lock {
+    display: none; position: absolute; top: 8px; left: 8px; width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(255,255,255,0.95); color: var(--ink); align-items: center; justify-content: center; font-size: 12px;
+    cursor: pointer; z-index: 15; border: 1px solid var(--line); box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  body.edit-mode .photo-lock { display: flex; }
+  .photo-lock:hover { background: #f0f0f0; }
+
+  .photo-download {
+    display: none; position: absolute; bottom: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(255,255,255,0.95); color: var(--ink); align-items: center; justify-content: center; font-size: 14px; font-weight: bold;
+    cursor: pointer; z-index: 15; border: 1px solid var(--line); box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  body.edit-mode .photo-download { display: flex; }
+  .photo-download:hover { background: #f0f0f0; }
+
+  /* ---------- Add Item Container ---------- */
+  .add-item-card { display:none; aspect-ratio:1/1; border:1.5px dashed var(--line); color:var(--muted); }
+  body.edit-mode .add-item-card.show { display: flex; flex-direction: row; }
+  .add-item-btn {
+    flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    cursor: pointer; font-size: 13px; letter-spacing: 0.4px; transition: background 0.15s, color 0.15s;
+  }
+  .add-item-btn:hover { background: #fafafa; color: var(--ink); border-color: var(--ink); }
+  .add-item-btn:first-child { border-right: 1.5px dashed var(--line); }
+  .add-item-btn:hover:first-child { border-right-color: var(--ink); }
+  .add-item-btn .plus { font-size:28px; font-weight:300; line-height:1; }
+
+  .count-note{ margin-top:18px; font-size:12px; color:var(--muted); letter-spacing:0.3px; }
+
+  /* ---------- Lightbox ---------- */
+  .lightbox{
+    display:none; position:fixed; inset:0; background:rgba(255,255,255,0.98); z-index:200; flex-direction:column;
+    align-items:center; justify-content:center; padding:40px 24px;
+  }
+  .lightbox.open{ display:flex; }
+
+  .lightbox-close{
+    position:absolute; top:24px; right:32px; font-size:28px; font-weight:300; color:var(--ink); cursor:pointer;
+    background:none; border:none; line-height:1;
+  }
+  .lightbox-nav{
+    position:absolute; top:50%; transform:translateY(-50%); font-size:26px; color:var(--muted); background:none;
+    border:none; cursor:pointer; padding:14px;
+  }
+  .lightbox-nav:hover{ color:var(--ink); }
+  .lightbox-prev{ left:8px; }
+  .lightbox-next{ right:8px; }
+
+  .lightbox-img-wrap{ position:relative; max-width: 95vw; max-height: 80vh; display:flex; align-items:center; justify-content:center; }
+  .lightbox-img-wrap img{ max-width:100%; max-height: 80vh; object-fit:contain; box-shadow:0 20px 60px rgba(0,0,0,0.12); }
+  
+  .lightbox-text-wrap {
+    display: none; width: 90%; max-width: 800px; max-height: 80vh; overflow-y: auto; background: #ffffff; padding: 60px;
+    font-family: 'Raleway', sans-serif; font-size: 26px; line-height: 1.6; color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); white-space: pre-wrap; word-break: break-word;
+  }
+
+  .lightbox-caption{ max-width:640px; width:100%; margin-top:28px; text-align:center; }
+  .lightbox-title{ font-size:20px; font-weight:600; color:var(--ink); margin:0 0 8px 0; outline:none; min-height:1.3em; }
+  .lightbox-desc{ font-size:14px; font-weight:400; color:var(--muted); line-height:1.6; margin:0; outline:none; min-height:1.4em; }
+  .lightbox-title[data-placeholder]:empty:before, .lightbox-desc[data-placeholder]:empty:before{ content:attr(data-placeholder); color:#c7c7c7; }
+  body.view-mode .lightbox-title, body.view-mode .lightbox-desc{ cursor:default; }
+  
+  .edit-hint{ display:none; margin-top:10px; font-size:11px; color:#c7c7c7; letter-spacing:0.3px; }
+  body.edit-mode .edit-hint{ display:block; }
+
+  /* ---------- Export bar ---------- */
+  .export-bar{
+    display:none; position:fixed; bottom:0; left:0; right:0; background:var(--ink); color:#fff; padding:14px 28px;
+    z-index:150; align-items:center; justify-content:space-between; gap:16px; font-size:13px; letter-spacing:0.2px;
+  }
+  body.edit-mode .export-bar{ display:flex; }
+  .export-bar span{ opacity:0.75; }
+  .export-bar button{
+    font-family:'Raleway', sans-serif; background:#fff; color:var(--ink); border:none; padding:9px 20px;
+    border-radius:20px; cursor:pointer; font-size:13px; letter-spacing:0.3px;
+  }
+  .export-bar button:hover{ opacity:0.85; }
+  .export-bar .bar-actions{ display:flex; gap:10px; flex-shrink:0; }
+  .export-bar button.ghost{ background:none; color:#fff; border:1px solid rgba(255,255,255,0.4); }
+  .export-bar button.ghost:hover{ opacity:1; border-color:#fff; }
+
+  input[type=file]{ display:none; }
+  body.locked .mode-toggle{ display:none !important; }
+
+  /* --- Drag & Drop Reordering --- */
+  .photo-card.dragging {
+    opacity: 0.4;
+  }
+  .photo-card.drag-over {
+    border: 2px dashed var(--ink);
+    transform: scale(0.98);
+  }
+
+  /* ---------- Drag & Drop Overlay ---------- */
+  .drag-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 9999; align-items: center;
+    justify-content: center; border: 4px dashed var(--ink); font-size: 24px; color: var(--ink); font-weight: 500; pointer-events: none;
+  }
+</style>
+</head>
+<body class="edit-mode">
+
+<header class="site-head">
+  <div class="head-inner">
+    <div class="brand" contenteditable="true" spellcheck="false" id="brandTitle">JC</div>
+    <div class="header-actions">
+        
+       <div id="authContainer" class="auth-container">
+           <!-- Dynamic Auth UI rendered here -->
+       </div>
+
+       <div id="storageMeter" class="storage-meter" title="Local database storage used">
+          <span id="storageText" class="storage-text">0.00 MB STORED</span>
+          <span class="storage-badge">● IndexedDB Active</span>
+       </div>
+
+       <div class="mode-toggle">
+         <button id="editBtn" class="active">Edit</button>
+         <button id="viewBtn">View</button>
+       </div>
+    </div>
+  </div>
+  
+  <div class="mobile-tabs-toggle" id="mobileTabsToggle">
+    <span id="mobileTabsLabel">Sections</span>
+    <svg class="chevron" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </div>
+
+  <nav class="tabs" id="tabsNav"></nav>
+</header>
+
+<main>
+  <div id="galleryArea"></div>
+</main>
+
+<div class="export-bar">
+  <span>Edit mode — add up to 200 items per section. Save an editable copy anytime to back up.</span>
+  <div class="bar-actions">
+    <button id="saveProjectBtn" class="ghost" title="Download an HTML copy you can open and continue editing anytime">Download Editable Copy</button>
+    <button id="exportBtn" title="Download a locked copy for sharing with viewers">Download Shareable Copy</button>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose">&times;</button>
+  <button class="lightbox-nav lightbox-prev" id="lightboxPrev">&#8249;</button>
+  <button class="lightbox-nav lightbox-next" id="lightboxNext">&#8250;</button>
+  
+  <div class="lightbox-img-wrap" id="lightboxImgWrap">
+     <img id="lightboxImg" src="" alt="">
+  </div>
+  
+  <div class="lightbox-text-wrap" id="lightboxText"></div>
+  
+  <div class="lightbox-caption" id="lightboxCaption">
+    <div class="lightbox-title" id="lightboxTitle" contenteditable="false" data-placeholder="Untitled"></div>
+    <div class="lightbox-desc" id="lightboxDesc" contenteditable="false" data-placeholder="Add a description..."></div>
+    <div class="edit-hint">Click title or description to edit</div>
+  </div>
+</div>
+
+<div id="dragOverlay" class="drag-overlay">
+  Drop photos to add to the active section
+</div>
+
+<input type="file" id="fileInput" accept="image/*" multiple>
+
+<script>
+// RESTORED STORAGE KEY to perfectly recall your original photos!
+const STORAGE_KEY = 'artGalleryState_v1';
+const MAX_PHOTOS_PER_SECTION = 200;
+
+/* --- IndexedDB Storage Engine (Eliminates 5MB Limit) --- */
+const DB_NAME = 'PhotoGalleryDB';
+const STORE_NAME = 'galleryStore';
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = (e) => resolve(e.target.result);
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
+async function saveToDB(key, val) {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(val, key);
+  } catch(e) {}
+}
+
+async function loadFromDB(key) {
+  try {
+    const db = await initDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) {
+    return null;
+  }
+}
+
+/* --- Cryptography Engine --- */
+function encodeUTF8(text) { return unescape(encodeURIComponent(text)); }
+function decodeUTF8(bytes) { return decodeURIComponent(escape(bytes)); }
+
+function encryptData(text, key) {
+    if(!text || !key) return text;
+    const data = encodeUTF8(text);
+    const k = encodeUTF8(key);
+    let res = '';
+    for(let i=0; i<data.length; i++) {
+        res += String.fromCharCode(data.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+    }
+    return btoa(res);
+}
+
+function decryptData(b64, key) {
+    if(!b64 || !key) return b64;
+    try {
+        const data = atob(b64);
+        const k = encodeUTF8(key);
+        let res = '';
+        for(let i=0; i<data.length; i++) {
+            res += String.fromCharCode(data.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+        }
+        return decodeUTF8(res);
+    } catch(e) { return null; } 
+}
+
+// Global Auth State
+let sessionPassword = null; 
+
+let state = {
+  title: "JC",
+  galleryPassword: null, 
+  authCheck: null, 
+  items: [
+    { type: 'section', name: "Section 1", photos: [] }
+  ],
+  activePath: { folderIndex: null, sectionIndex: 0 }
+};
+
+let openFolderIndex = null; 
+
+async function loadInitialState(){
+  if (window.__EMBEDDED_GALLERY_DATA__) {
+    return window.__EMBEDDED_GALLERY_DATA__;
+  }
+  
+  let idbData = await loadFromDB(STORAGE_KEY);
+  if (idbData) return idbData;
+
+  try {
+    let raw = localStorage.getItem('artGalleryState_v1');
+    if(!raw) raw = localStorage.getItem('artGalleryState_v3');
+    if(raw) {
+      const parsed = JSON.parse(raw);
+      await saveToDB(STORAGE_KEY, parsed);
+      return parsed;
+    }
+  } catch(e){}
+  
+  return null;
+}
+
+function updateStorageMeter() {
+    const textEl = document.getElementById('storageText');
+    if(!textEl) return;
+    const currentBytes = JSON.stringify(state).length;
+    const mbUsed = (currentBytes / 1048576).toFixed(2);
+    textEl.textContent = `${mbUsed} MB STORED`;
+}
+
+function saveState(){
+  saveToDB(STORAGE_KEY, state);
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+  updateStorageMeter();
+}
+
+function getActiveSection() {
+  const path = state.activePath;
+  if (path.folderIndex !== null) {
+    const folder = state.items[path.folderIndex];
+    if (folder && folder.sections) {
+       return folder.sections[path.sectionIndex];
+    }
+  } else {
+    return state.items[path.sectionIndex];
+  }
+  return null;
+}
+
+function resetActivePath() {
+  if (state.items.length === 0) {
+     state.items.push({ type: 'section', name: 'Section 1', photos: [] });
+     state.activePath = { folderIndex: null, sectionIndex: 0 };
+     return;
+  }
+  const { folderIndex, sectionIndex } = state.activePath;
+  if (folderIndex !== null) {
+     if (state.items[folderIndex] && state.items[folderIndex].type === 'folder') {
+        if (state.items[folderIndex].sections.length > sectionIndex) return;
+        if (state.items[folderIndex].sections.length > 0) {
+           state.activePath.sectionIndex = state.items[folderIndex].sections.length - 1;
+           return;
+        }
+     }
+  } else {
+     if (state.items[sectionIndex] && state.items[sectionIndex].type === 'section') return;
+  }
+  for(let i=0; i<state.items.length; i++) {
+     if (state.items[i].type === 'section') {
+        state.activePath = { folderIndex: null, sectionIndex: i };
+        return;
+     }
+     if (state.items[i].type === 'folder' && state.items[i].sections.length > 0) {
+        state.activePath = { folderIndex: i, sectionIndex: 0 };
+        return;
+     }
+  }
+}
+
+/* ---------------- Elements ---------------- */
+const body = document.body;
+const brandTitle = document.getElementById('brandTitle');
+const authContainer = document.getElementById('authContainer');
+const tabsNav = document.getElementById('tabsNav');
+const mobileTabsToggle = document.getElementById('mobileTabsToggle');
+const mobileTabsLabel = document.getElementById('mobileTabsLabel');
+const galleryArea = document.getElementById('galleryArea');
+const editBtn = document.getElementById('editBtn');
+const viewBtn = document.getElementById('viewBtn');
+const fileInput = document.getElementById('fileInput');
+const exportBtn = document.getElementById('exportBtn');
+const saveProjectBtn = document.getElementById('saveProjectBtn');
+const dragOverlay = document.getElementById('dragOverlay');
+
+const lightbox = document.getElementById('lightbox');
+const lightboxImgWrap = document.getElementById('lightboxImgWrap');
+const lightboxImg = document.getElementById('lightboxImg');
+const lightboxText = document.getElementById('lightboxText');
+const lightboxCaption = document.getElementById('lightboxCaption');
+const lightboxTitle = document.getElementById('lightboxTitle');
+const lightboxDesc = document.getElementById('lightboxDesc');
+const lightboxClose = document.getElementById('lightboxClose');
+const lightboxPrev = document.getElementById('lightboxPrev');
+const lightboxNext = document.getElementById('lightboxNext');
+
+let currentPhotoIndex = null;
+
+/* ---------------- Mobile Menu ---------------- */
+if (mobileTabsToggle) {
+  mobileTabsToggle.addEventListener('click', () => {
+    tabsNav.classList.toggle('open');
+    mobileTabsToggle.classList.toggle('open');
+  });
+}
+
+function closeMobileMenu() {
+  tabsNav.classList.remove('open');
+  mobileTabsToggle.classList.remove('open');
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.folder-tab')) {
+     if (openFolderIndex !== null) {
+        openFolderIndex = null;
+        renderTabs();
+     }
+  }
+});
+
+/* ---------------- Rendering ---------------- */
+
+function render(){
+  brandTitle.textContent = state.title || "JC";
+  renderAuth();
+  renderTabs();
+  renderGallery();
+  saveState();
+}
+
+function renderAuth() {
+    authContainer.innerHTML = '';
+    const isEdit = body.classList.contains('edit-mode');
+    const isSharedFile = window.__EMBEDDED_GALLERY_DATA__ !== undefined && body.classList.contains('locked');
+
+    if (isEdit && !isSharedFile) {
+        // Creator's Edit View - Simple persistent input box
+        const wrapper = document.createElement('div');
+        wrapper.className = 'edit-pwd-wrapper';
+        
+        const lbl = document.createElement('label');
+        lbl.textContent = 'Master Password:';
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'edit-pwd-input';
+        input.placeholder = 'None';
+        input.value = state.galleryPassword || '';
+
+        input.addEventListener('change', () => {
+            const newPwd = input.value.trim();
+            const oldPwd = state.galleryPassword || '';
+            
+            if (newPwd === oldPwd) return;
+
+            // Re-encrypt/Decrypt all locked photos behind the scenes
+            state.items.forEach(item => {
+                if (item.type === 'section') reencryptSection(item, oldPwd, newPwd);
+                else if (item.type === 'folder') item.sections.forEach(sec => reencryptSection(sec, oldPwd, newPwd));
+            });
+
+            state.galleryPassword = newPwd ? newPwd : null;
+            state.authCheck = newPwd ? encryptData('VALID', newPwd) : null;
+            sessionPassword = state.galleryPassword;
+            
+            saveState();
+            render();
+        });
+
+        wrapper.appendChild(lbl);
+        wrapper.appendChild(input);
+        authContainer.appendChild(wrapper);
+
+    } else {
+        // View Mode / Shared File Flow
+        if (state.authCheck) {
+            if (!sessionPassword) {
+                // Locked - User must type password
+                const input = document.createElement('input');
+                input.type = 'password';
+                input.placeholder = 'Password...';
+                input.className = 'auth-input';
+                
+                const btn = document.createElement('button');
+                btn.textContent = 'Unlock';
+                btn.className = 'auth-btn';
+                
+                const msg = document.createElement('span');
+                msg.className = 'auth-msg';
+
+                btn.addEventListener('click', () => {
+                    const pwd = input.value;
+                    if (decryptData(state.authCheck, pwd) === 'VALID') {
+                        sessionPassword = pwd;
+                        msg.textContent = 'Unlocked!';
+                        msg.style.color = '#27ae60';
+                        setTimeout(() => render(), 750); 
+                    } else {
+                        msg.textContent = 'Incorrect!';
+                        msg.style.color = '#c0392b';
+                        input.value = '';
+                    }
+                });
+                input.addEventListener('keydown', e => { if(e.key==='Enter') btn.click(); });
+                
+                authContainer.appendChild(msg);
+                authContainer.appendChild(input);
+                authContainer.appendChild(btn);
+            } else {
+                // Unlocked View
+                const msg = document.createElement('span');
+                msg.textContent = '🔓 Gallery Unlocked';
+                msg.className = 'auth-msg';
+                msg.style.color = '#27ae60';
+                authContainer.appendChild(msg);
+            }
+        }
+    }
+}
+
+function reencryptSection(section, oldPwd, newPwd) {
+    section.photos.forEach(p => {
+        if (p.locked) {
+            let rawSrc = p.src;
+            let rawContent = p.content;
+            let rawTitle = p.title;
+            let rawDesc = p.desc;
+
+            // 1. Recover plain text using old password
+            if (oldPwd) {
+                if (p.type === 'text') rawContent = decryptData(p.content, oldPwd) || '';
+                else rawSrc = decryptData(p.src, oldPwd) || '';
+                if(p.title) rawTitle = decryptData(p.title, oldPwd) || '';
+                if(p.desc) rawDesc = decryptData(p.desc, oldPwd) || '';
+            }
+
+            // 2. Encrypt with new password OR leave as plain text if password removed
+            if (newPwd) {
+                if (p.type === 'text') p.content = encryptData(rawContent, newPwd);
+                else p.src = encryptData(rawSrc, newPwd);
+                if(rawTitle) p.title = encryptData(rawTitle, newPwd);
+                if(rawDesc) p.desc = encryptData(rawDesc, newPwd);
+            } else {
+                if (p.type === 'text') p.content = rawContent;
+                else p.src = rawSrc;
+                p.title = rawTitle;
+                p.desc = rawDesc;
+                
+                p.locked = false; // Auto-unlock if master password is removed entirely
+            }
+        }
+    });
+}
+
+function renderTabs(){
+  tabsNav.innerHTML = "";
+  
+  const activeSectionData = getActiveSection();
+  if(mobileTabsLabel) {
+    if(activeSectionData) {
+      mobileTabsLabel.textContent = activeSectionData.name;
+    } else {
+      mobileTabsLabel.textContent = "Empty Folder";
+    }
+  }
+
+  state.items.forEach((item, i) => {
+    if (item.type === 'section') {
+      const isTabActive = (state.activePath.folderIndex === null && state.activePath.sectionIndex === i);
+      const tab = document.createElement('div');
+      tab.className = 'tab' + (isTabActive ? ' active' : '');
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'tab-name';
+      nameEl.textContent = item.name;
+      nameEl.contentEditable = body.classList.contains('edit-mode');
+      nameEl.spellcheck = false;
+      
+      nameEl.addEventListener('click', (e) => {
+        if(!body.classList.contains('edit-mode')){
+          state.activePath = { folderIndex: null, sectionIndex: i };
+          openFolderIndex = null;
+          closeMobileMenu();
+          render();
+        }
+        e.stopPropagation();
+      });
+      nameEl.addEventListener('blur', () => {
+        item.name = nameEl.textContent.trim() || `Section ${i+1}`;
+        saveState();
+        if(isTabActive && mobileTabsLabel) mobileTabsLabel.textContent = item.name;
+      });
+      nameEl.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter'){ e.preventDefault(); nameEl.blur(); }
+      });
+
+      tab.addEventListener('click', () => {
+        state.activePath = { folderIndex: null, sectionIndex: i };
+        openFolderIndex = null;
+        closeMobileMenu();
+        render();
+      });
+
+      const removeEl = document.createElement('span');
+      removeEl.className = 'remove-tab';
+      removeEl.textContent = '\u00d7';
+      removeEl.title = 'Remove section';
+      removeEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(state.items.length === 1 && state.items[0].type === 'section'){
+          alert("You need at least one section."); return;
+        }
+        if(confirm(`Remove "${item.name}" and its photos?`)){
+          state.items.splice(i, 1);
+          resetActivePath();
+          render();
+        }
+      });
+
+      tab.appendChild(nameEl);
+      tab.appendChild(removeEl);
+      tabsNav.appendChild(tab);
+
+    } else if (item.type === 'folder') {
+      const isFolderActive = (state.activePath.folderIndex === i);
+      const folderTab = document.createElement('div');
+      folderTab.className = 'folder-tab' + (isFolderActive ? ' active' : '') + (openFolderIndex === i ? ' open' : '');
+
+      const header = document.createElement('div');
+      header.className = 'folder-tab-header';
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'folder-name tab-name';
+      nameEl.textContent = item.name;
+      nameEl.contentEditable = body.classList.contains('edit-mode');
+      nameEl.spellcheck = false;
+      
+      nameEl.addEventListener('click', (e) => {
+         if(body.classList.contains('edit-mode')) e.stopPropagation();
+      });
+      nameEl.addEventListener('blur', () => {
+         item.name = nameEl.textContent.trim() || `Folder ${i+1}`;
+         saveState();
+      });
+      nameEl.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter'){ e.preventDefault(); nameEl.blur(); }
+      });
+
+      const removeFolderEl = document.createElement('span');
+      removeFolderEl.className = 'remove-tab';
+      removeFolderEl.textContent = '\u00d7';
+      removeFolderEl.title = 'Remove folder and all its sections';
+      removeFolderEl.addEventListener('click', (e) => {
+         e.stopPropagation();
+         if(confirm(`Remove folder "${item.name}" AND all its sections?`)){
+            state.items.splice(i, 1);
+            openFolderIndex = null;
+            resetActivePath();
+            render();
+         }
+      });
+
+      const chevron = document.createElement('span');
+      chevron.className = 'chevron';
+      chevron.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+
+      header.addEventListener('click', (e) => {
+         openFolderIndex = (openFolderIndex === i) ? null : i;
+         render();
+      });
+
+      header.appendChild(nameEl);
+      if(body.classList.contains('edit-mode')) header.appendChild(removeFolderEl);
+      header.appendChild(chevron);
+      
+      const dropdown = document.createElement('div');
+      dropdown.className = 'dropdown-menu';
+      dropdown.addEventListener('click', e => e.stopPropagation());
+
+      item.sections.forEach((subSec, j) => {
+         const isSubActive = (state.activePath.folderIndex === i && state.activePath.sectionIndex === j);
+         const subItem = document.createElement('div');
+         subItem.className = 'dropdown-item' + (isSubActive ? ' active' : '');
+         
+         const subNameEl = document.createElement('span');
+         subNameEl.className = 'tab-name';
+         subNameEl.textContent = subSec.name;
+         subNameEl.contentEditable = body.classList.contains('edit-mode');
+         subNameEl.spellcheck = false;
+
+         subNameEl.addEventListener('click', (e) => {
+            if(!body.classList.contains('edit-mode')){
+               state.activePath = { folderIndex: i, sectionIndex: j };
+               openFolderIndex = null;
+               closeMobileMenu();
+               render();
+            } else {
+               e.stopPropagation();
+            }
+         });
+         subNameEl.addEventListener('blur', () => {
+            subSec.name = subNameEl.textContent.trim() || `Section ${j+1}`;
+            saveState();
+            if(isSubActive && mobileTabsLabel) mobileTabsLabel.textContent = subSec.name;
+         });
+         subNameEl.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter'){ e.preventDefault(); subNameEl.blur(); }
+         });
+
+         subItem.addEventListener('click', () => {
+            state.activePath = { folderIndex: i, sectionIndex: j };
+            openFolderIndex = null;
+            closeMobileMenu();
+            render();
+         });
+
+         const removeSubEl = document.createElement('span');
+         removeSubEl.className = 'remove-tab';
+         removeSubEl.textContent = '\u00d7';
+         removeSubEl.title = 'Remove section';
+         removeSubEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if(confirm(`Remove "${subSec.name}" and its photos?`)){
+               item.sections.splice(j, 1);
+               resetActivePath();
+               render();
+            }
+         });
+
+         subItem.appendChild(subNameEl);
+         subItem.appendChild(removeSubEl);
+         dropdown.appendChild(subItem);
+      });
+
+      if (body.classList.contains('edit-mode')) {
+         const addSub = document.createElement('div');
+         addSub.className = 'dropdown-item add-sub-tab';
+         addSub.innerHTML = `<span style="font-size:14px; opacity:0.8">+ Add section</span>`;
+         const addSubInput = document.createElement('input');
+         addSubInput.className = 'add-tab-input';
+         addSubInput.style.display = 'none';
+         
+         addSub.addEventListener('click', (e) => {
+            e.stopPropagation();
+            addSub.style.display = 'none';
+            addSubInput.style.display = 'block';
+            addSubInput.focus();
+         });
+         
+         function commitSubAdd() {
+            const name = addSubInput.value.trim();
+            if(name) {
+               item.sections.push({ name, photos: [] });
+               state.activePath = { folderIndex: i, sectionIndex: item.sections.length - 1 };
+               openFolderIndex = i; 
+               render();
+            } else {
+               addSubInput.style.display = 'none';
+               addSub.style.display = 'flex';
+            }
+         }
+         addSubInput.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter'){ commitSubAdd(); }
+            if(e.key === 'Escape'){ addSubInput.value=''; addSubInput.blur(); }
+         });
+         addSubInput.addEventListener('blur', commitSubAdd);
+         addSubInput.addEventListener('click', e => e.stopPropagation());
+
+         dropdown.appendChild(addSub);
+         dropdown.appendChild(addSubInput);
+      }
+
+      folderTab.appendChild(header);
+      folderTab.appendChild(dropdown);
+      tabsNav.appendChild(folderTab);
+    }
+  });
+
+  if (body.classList.contains('edit-mode')) {
+    const addContainer = document.createElement('div');
+    addContainer.className = 'add-tab-container';
+
+    const addSecBtn = document.createElement('div');
+    addSecBtn.className = 'add-tab';
+    addSecBtn.innerHTML = `<span>+ Section</span>`;
+    
+    const addFolBtn = document.createElement('div');
+    addFolBtn.className = 'add-tab';
+    addFolBtn.innerHTML = `<span>+ Folder</span>`;
+
+    const addInput = document.createElement('input');
+    addInput.className = 'add-tab-input';
+    let addingType = 'section'; 
+
+    addSecBtn.addEventListener('click', () => {
+      addingType = 'section';
+      addSecBtn.style.display = 'none';
+      addFolBtn.style.display = 'none';
+      addInput.style.display = 'inline-block';
+      addInput.placeholder = 'Section name';
+      addInput.focus();
+    });
+    addFolBtn.addEventListener('click', () => {
+      addingType = 'folder';
+      addSecBtn.style.display = 'none';
+      addFolBtn.style.display = 'none';
+      addInput.style.display = 'inline-block';
+      addInput.placeholder = 'Folder name';
+      addInput.focus();
+    });
+
+    function commitAddRoot(){
+      const name = addInput.value.trim();
+      if(name){
+         if (addingType === 'section') {
+            state.items.push({ type: 'section', name, photos: [] });
+            state.activePath = { folderIndex: null, sectionIndex: state.items.length - 1 };
+         } else {
+            state.items.push({ type: 'folder', name, sections: [] });
+            openFolderIndex = state.items.length - 1; 
+            state.activePath = { folderIndex: state.items.length - 1, sectionIndex: 0 };
+         }
+         closeMobileMenu();
+         render();
+      } else {
+         addInput.style.display = 'none';
+         addSecBtn.style.display = 'flex';
+         addFolBtn.style.display = 'flex';
+      }
+    }
+    
+    addInput.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){ commitAddRoot(); }
+      if(e.key === 'Escape'){ addInput.value=''; addInput.blur(); }
+    });
+    addInput.addEventListener('blur', commitAddRoot);
+
+    addContainer.appendChild(addSecBtn);
+    addContainer.appendChild(addFolBtn);
+    addContainer.appendChild(addInput);
+    tabsNav.appendChild(addContainer);
+  }
+}
+
+function renderGallery(){
+  galleryArea.innerHTML = "";
+  const section = getActiveSection();
+  const isEdit = body.classList.contains('edit-mode');
+
+  if(!section){
+    const empty = document.createElement('div');
+    empty.className = 'section-empty';
+    if(isEdit) {
+      empty.textContent = 'This folder is empty. Open the folder dropdown above and click "+ Add section" to begin.';
+    } else {
+      empty.textContent = 'Nothing to show here yet.';
+    }
+    galleryArea.appendChild(empty);
+    return;
+  }
+
+  if(section.photos.length === 0 && !isEdit){
+    const empty = document.createElement('div');
+    empty.className = 'section-empty';
+    empty.textContent = 'No items in this section yet.';
+    galleryArea.appendChild(empty);
+    return;
+  }
+
+  if (isEdit && section.photos.length > 0) {
+    const secToolbar = document.createElement('div');
+    secToolbar.style.display = 'flex';
+    secToolbar.style.justifyContent = 'flex-end';
+    secToolbar.style.marginBottom = '16px';
+    
+    const bulkLockBtn = document.createElement('button');
+    const allLocked = section.photos.every(p => p.locked);
+    bulkLockBtn.innerHTML = allLocked ? '🔓 Unlock Entire Section' : '🔒 Lock Entire Section';
+    bulkLockBtn.style.cssText = 'background:none; border:1px solid var(--line); border-radius:16px; padding:6px 14px; font-size:12px; font-family:inherit; cursor:pointer; color:var(--ink); transition: background 0.15s; font-weight:500;';
+    bulkLockBtn.addEventListener('mouseenter', () => bulkLockBtn.style.background = '#fafafa');
+    bulkLockBtn.addEventListener('mouseleave', () => bulkLockBtn.style.background = 'none');
+    
+    bulkLockBtn.addEventListener('click', () => {
+        if (!state.galleryPassword) {
+            alert("Please set a Master Password at the top right before locking items.");
+            return;
+        }
+        section.photos.forEach(item => {
+            if (!allLocked && !item.locked) {
+                if (item.type === 'text') item.content = encryptData(item.content, state.galleryPassword);
+                else item.src = encryptData(item.src, state.galleryPassword);
+                if(item.title) item.title = encryptData(item.title, state.galleryPassword);
+                if(item.desc) item.desc = encryptData(item.desc, state.galleryPassword);
+                item.locked = true;
+            } else if (allLocked && item.locked) {
+                if (item.type === 'text') item.content = decryptData(item.content, state.galleryPassword) || "";
+                else item.src = decryptData(item.src, state.galleryPassword) || "";
+                if(item.title) item.title = decryptData(item.title, state.galleryPassword) || "";
+                if(item.desc) item.desc = decryptData(item.desc, state.galleryPassword) || "";
+                item.locked = false;
+            }
+        });
+        saveState();
+        render();
+    });
+    secToolbar.appendChild(bulkLockBtn);
+    galleryArea.appendChild(secToolbar);
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+
+  section.photos.forEach((item, pIndex) => {
+    const card = document.createElement('div');
+    card.className = 'photo-card';
+    
+    const isLockedState = item.locked && !sessionPassword;
+
+    if (isLockedState) {
+       card.classList.add('locked-item');
+       const lockOverlay = document.createElement('div');
+       lockOverlay.className = 'locked-overlay';
+       lockOverlay.innerHTML = '🔒';
+       card.appendChild(lockOverlay);
+    }
+
+    if (!item.type || item.type === 'image' || item.type === 'group') {
+       if (item.type === 'group' && item.sources && item.sources.length > 0) {
+           const gridContainer = document.createElement('div');
+           gridContainer.style.cssText = 'width:100%; height:100%; display:grid; grid-template-columns:repeat(2, 1fr); grid-template-rows:repeat(2, 1fr); gap:2px; background:#ffffff;';
+           
+           for (let i = 0; i < 4; i++) {
+               const sourceObj = item.sources[i];
+               const subCell = document.createElement('div');
+               subCell.style.cssText = 'background:#ffffff; width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;';
+               
+               if (sourceObj) {
+                   const obj = typeof sourceObj === 'object' ? sourceObj : { src: sourceObj, locked: false };
+                   const isSubLocked = obj.locked && !sessionPassword;
+                   const srcVal = obj.src;
+
+                   if (isSubLocked) {
+                       const subImg = document.createElement('img');
+                       subImg.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNlMGUwZTAiLz48L3N2Zz4=';
+                       subImg.style.cssText = 'max-width:100%; max-height:100%; object-fit:contain; display:block; filter:blur(10px); opacity:0.4;';
+                       subCell.appendChild(subImg);
+                       const lockBadge = document.createElement('div');
+                       lockBadge.innerHTML = '🔒';
+                       lockBadge.style.cssText = 'position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px;';
+                       subCell.appendChild(lockBadge);
+                   } else {
+                       const actualSrc = obj.locked ? (decryptData(srcVal, sessionPassword) || '') : srcVal;
+                       const subImg = document.createElement('img');
+                       subImg.src = actualSrc;
+                       subImg.style.cssText = 'max-width:100%; max-height:100%; object-fit:contain; display:block;';
+                       subImg.draggable = false;
+                       subCell.appendChild(subImg);
+                   }
+               }
+               gridContainer.appendChild(subCell);
+           }
+           card.appendChild(gridContainer);
+       } else {
+           const img = document.createElement('img');
+           if (isLockedState) {
+               img.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNlMGUwZTAiLz48L3N2Zz4='; 
+           } else {
+               img.src = item.locked ? (decryptData(item.src, sessionPassword) || '') : item.src;
+           }
+           img.alt = '';
+           img.loading = 'lazy';
+           img.draggable = false;
+           card.appendChild(img);
+       }
+
+       card.addEventListener('click', () => {
+          if(!isLockedState) openLightbox(pIndex);
+       });
+       
+    } else if (item.type === 'text') {
+       card.classList.add('text-type');
+       
+       const tc = document.createElement('div');
+       tc.className = 'text-content';
+       tc.contentEditable = isEdit && !isLockedState;
+       
+       if (isLockedState) {
+           tc.innerHTML = 'Hidden Content<br><br>...<br>...';
+       } else {
+           tc.innerHTML = item.locked ? (decryptData(item.content, sessionPassword) || '') : (item.content || '');
+       }
+       
+       tc.addEventListener('blur', () => {
+          if(isLockedState) return;
+          const raw = tc.innerHTML;
+          item.content = item.locked ? encryptData(raw, sessionPassword) : raw;
+          saveState();
+       });
+       tc.addEventListener('keydown', e => e.stopPropagation());
+
+       if (isEdit && !isLockedState) {
+           // Momentarily disable card dragging when hovering text so text selection works naturally
+           tc.addEventListener('mouseenter', () => card.setAttribute('draggable', 'false'));
+           tc.addEventListener('mouseleave', () => card.setAttribute('draggable', 'true'));
+       }
+
+       if (!isEdit) {
+          card.addEventListener('click', () => { if(!isLockedState) openLightbox(pIndex); });
+       }
+
+       card.appendChild(tc);
+
+       if (isEdit && !isLockedState) {
+         const tb = document.createElement('div');
+         tb.className = 'text-card-toolbar';
+         tb.contentEditable = "false"; 
+         
+         const label = document.createElement('span');
+         label.className = 'toolbar-label';
+         label.textContent = "Highlight text, then:";
+         tb.appendChild(label);
+         
+         const weights = [
+            { label: 'Thin', val: '300' },
+            { label: 'Regular', val: '400' },
+            { label: 'Bold', val: '700' }
+         ];
+         
+         tb.addEventListener('mousedown', (e) => e.preventDefault());
+         
+         weights.forEach(w => {
+            const btn = document.createElement('button');
+            btn.textContent = w.label;
+            
+            btn.addEventListener('click', (e) => {
+               e.stopPropagation();
+               const sel = window.getSelection();
+               if (!sel.rangeCount || sel.isCollapsed) return; 
+               
+               const range = sel.getRangeAt(0);
+               const span = document.createElement('span');
+               span.style.fontWeight = w.val;
+               span.appendChild(range.extractContents());
+               range.insertNode(span);
+               sel.removeAllRanges(); 
+               
+               const raw = tc.innerHTML;
+               item.content = item.locked ? encryptData(raw, sessionPassword) : raw;
+               saveState();
+            });
+            tb.appendChild(btn);
+         });
+         card.appendChild(tb);
+       }
+    }
+
+    const lockEl = document.createElement('div');
+    lockEl.className = 'photo-lock';
+    lockEl.innerHTML = item.locked ? '🔒' : '🔓';
+    lockEl.title = item.locked ? 'Unlock item' : 'Lock item';
+    lockEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      
+      if (!state.galleryPassword) {
+          alert("Please set a Master Password at the top right before locking items.");
+          return;
+      }
+
+      if (!item.locked) {
+         if (item.type === 'text') item.content = encryptData(item.content, state.galleryPassword);
+         else item.src = encryptData(item.src, state.galleryPassword);
+         if(item.title) item.title = encryptData(item.title, state.galleryPassword);
+         if(item.desc) item.desc = encryptData(item.desc, state.galleryPassword);
+         item.locked = true;
+      } else {
+         if (item.type === 'text') item.content = decryptData(item.content, state.galleryPassword) || "";
+         else item.src = decryptData(item.src, state.galleryPassword) || "";
+         if(item.title) item.title = decryptData(item.title, state.galleryPassword) || "";
+         if(item.desc) item.desc = decryptData(item.desc, state.galleryPassword) || "";
+         item.locked = false;
+      }
+      
+      saveState();
+      render();
+    });
+
+    const removeEl = document.createElement('div');
+    removeEl.className = 'photo-remove';
+    removeEl.textContent = '\u00d7';
+    removeEl.title = 'Remove item';
+    removeEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      section.photos.splice(pIndex, 1);
+      render();
+    });
+    
+    if(isEdit) {
+       card.appendChild(lockEl);
+       card.appendChild(removeEl);
+
+       if (!item.type || item.type === 'image') {
+           const dlEl = document.createElement('div');
+           dlEl.className = 'photo-download';
+           dlEl.innerHTML = '↓';
+           dlEl.title = 'Download image';
+           dlEl.addEventListener('click', (e) => {
+               e.stopPropagation();
+               if (item.locked && !sessionPassword) {
+                   alert("Unlock the item first to download it.");
+                   return;
+               }
+               const imgSrc = item.locked ? decryptData(item.src, sessionPassword) : item.src;
+               if (!imgSrc) return;
+               
+               const safeTitle = (item.title || 'gallery-image').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+               
+               // Dynamically convert the stored image back to a high-quality PNG
+               const tempImg = new Image();
+               tempImg.onload = () => {
+                   const canvas = document.createElement('canvas');
+                   canvas.width = tempImg.width;
+                   canvas.height = tempImg.height;
+                   canvas.getContext('2d').drawImage(tempImg, 0, 0);
+                   const a = document.createElement('a');
+                   a.href = canvas.toDataURL('image/png');
+                   a.download = safeTitle + '.png';
+                   document.body.appendChild(a);
+                   a.click();
+                   a.remove();
+               };
+               tempImg.src = imgSrc;
+           });
+           card.appendChild(dlEl);
+       }
+
+       // --- Drag and Drop Reordering Setup ---
+       card.setAttribute('draggable', 'true');
+       
+       card.addEventListener('dragstart', (e) => {
+           e.dataTransfer.setData('text/plain', pIndex.toString());
+           e.dataTransfer.effectAllowed = 'move';
+           setTimeout(() => card.classList.add('dragging'), 0);
+       });
+
+       card.addEventListener('dragend', () => {
+           card.classList.remove('dragging');
+       });
+
+       card.addEventListener('dragover', (e) => {
+           e.preventDefault();
+           if (e.dataTransfer.types.includes('text/plain')) {
+               card.classList.add('drag-over');
+           }
+       });
+
+       card.addEventListener('dragleave', () => {
+           card.classList.remove('drag-over');
+       });
+
+       card.addEventListener('drop', (e) => {
+            card.classList.remove('drag-over');
+            const dragData = e.dataTransfer.getData('text/plain');
+            if (dragData !== "") {
+                e.preventDefault();
+                e.stopPropagation();
+                const fromIndex = parseInt(dragData, 10);
+                const toIndex = pIndex;
+                
+                if (!isNaN(fromIndex) && fromIndex !== fromIndex) return; // safety
+
+                const section = getActiveSection();
+                const targetItem = section.photos[toIndex];
+                const sourceItem = section.photos[fromIndex];
+
+                // Prevent text notes or invalid drops
+                if (!sourceItem || sourceItem.type === 'text') return;
+                if (targetItem && targetItem.type === 'text') return;
+
+                // Check if user is trying to combine into a 4-photo group slot
+                // Hold 'Shift' key while dropping to force nesting/combining, OR drop directly onto a group card
+                const isGroupTarget = targetItem.type === 'group';
+                const isShiftDrop = e.shiftKey;
+
+                if (isGroupTarget || isShiftDrop) {
+                    if (!targetItem.sources) {
+                        targetItem.type = 'group';
+                        // Convert old string format to object format with empty title/desc
+                        targetItem.sources = [{ src: targetItem.src, title: targetItem.title || "", desc: targetItem.desc || "" }];
+                        delete targetItem.src;
+                        delete targetItem.title;
+                        delete targetItem.desc;
+                    }
+
+                    if (targetItem.sources.length < 4 && fromIndex !== toIndex) {
+                        let actualObj;
+                        if (sourceItem.type === 'group') {
+                            actualObj = sourceItem.sources[0];
+                        } else {
+                            const decryptedSrc = sourceItem.locked ? decryptData(sourceItem.src, sessionPassword) : sourceItem.src;
+                            const decryptedTitle = sourceItem.locked && sourceItem.title ? decryptData(sourceItem.title, sessionPassword) : (sourceItem.title || "");
+                            const decryptedDesc = sourceItem.locked && sourceItem.desc ? decryptData(sourceItem.desc, sessionPassword) : (sourceItem.desc || "");
+                            actualObj = { src: decryptedSrc, title: decryptedTitle, desc: decryptedDesc };
+                        }
+
+                        if (actualObj && actualObj.src) {
+                            targetItem.sources.push(actualObj);
+                            section.photos.splice(fromIndex, 1); 
+                            saveState();
+                            render();
+                        }
+                    } else if (targetItem.sources.length >= 4) {
+                        alert("This image block already has the maximum of 4 photos combined.");
+                    }
+                } else {
+                    // Standard reordering behavior
+                    if (!isNaN(fromIndex) && fromIndex !== toIndex) {
+                        const [movedItem] = section.photos.splice(fromIndex, 1);
+                        section.photos.splice(toIndex, 0, movedItem);
+                        saveState();
+                        renderGallery();
+                    }
+                }
+            }
+        });
+    }
+    grid.appendChild(card);
+  });
+
+  if(isEdit && section.photos.length < MAX_PHOTOS_PER_SECTION){
+    const addCard = document.createElement('div');
+    addCard.className = 'add-item-card show';
+    
+    const btnPhoto = document.createElement('div');
+    btnPhoto.className = 'add-item-btn';
+    btnPhoto.innerHTML = `<div class="plus">+</div><div>Photo</div>`;
+    btnPhoto.addEventListener('click', () => fileInput.click());
+    
+    const btnText = document.createElement('div');
+    btnText.className = 'add-item-btn';
+    btnText.innerHTML = `<div class="plus">+</div><div>Note</div>`;
+    btnText.addEventListener('click', () => {
+       section.photos.push({ type: 'text', content: '', locked: false });
+       render();
+    });
+    
+    addCard.appendChild(btnPhoto);
+    addCard.appendChild(btnText);
+    grid.appendChild(addCard);
+  }
+
+  galleryArea.appendChild(grid);
+
+  if(isEdit){
+    const note = document.createElement('div');
+    note.className = 'count-note';
+    note.textContent = `${section.photos.length} / ${MAX_PHOTOS_PER_SECTION} items in "${section.name}"`;
+    galleryArea.appendChild(note);
+  }
+}
+
+/* ---------------- Visually-Lossless Image Compression Engine ---------------- */
+
+function processFiles(fileList) {
+  const section = getActiveSection();
+  if(!section) {
+     alert("Please create or select a section to upload photos into.");
+     return;
+  }
+  
+  const room = MAX_PHOTOS_PER_SECTION - section.photos.length;
+  const toAdd = fileList.slice(0, room);
+  if(fileList.length > room) alert(`Only ${room} more photo(s) can be added to this section (200 max).`);
+
+  let remaining = toAdd.length;
+  if(remaining === 0) return;
+
+  toAdd.forEach(file => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      
+      const MAX_SIZE = 1920; 
+      if (width > height && width > MAX_SIZE) {
+        height = Math.round((height * MAX_SIZE) / width);
+        width = MAX_SIZE;
+      } else if (height > MAX_SIZE) {
+        width = Math.round((width * MAX_SIZE) / height);
+        height = MAX_SIZE;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const optimizedDataUrl = canvas.toDataURL('image/webp', 0.92);
+      
+      section.photos.push({ type: 'image', src: optimizedDataUrl, title: "", desc: "", locked: false });
+      remaining--;
+      if(remaining === 0) render();
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      remaining--;
+      if(remaining === 0) render();
+    };
+    img.src = objectUrl;
+  });
+}
+
+fileInput.addEventListener('change', () => {
+  const files = Array.from(fileInput.files || []);
+  if(files.length > 0) processFiles(files);
+  fileInput.value = "";
+});
+
+/* ---------------- Drag & Drop Logic ---------------- */
+
+document.addEventListener('dragenter', (e) => { 
+  e.preventDefault(); 
+  if(body.classList.contains('edit-mode') && Array.from(e.dataTransfer.types).includes('Files')) {
+    dragOverlay.style.display = 'flex'; 
+  }
+});
+document.addEventListener('dragover', (e) => { 
+  e.preventDefault(); 
+  if(body.classList.contains('edit-mode') && Array.from(e.dataTransfer.types).includes('Files')) {
+    dragOverlay.style.display = 'flex'; 
+  }
+});
+document.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  if (!e.relatedTarget || e.relatedTarget.nodeName === 'HTML') dragOverlay.style.display = 'none';
+});
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dragOverlay.style.display = 'none';
+  if(body.classList.contains('edit-mode')) {
+    const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('image/'));
+    if(files.length > 0) processFiles(files);
+  }
+});
+
+/* ---------------- Lightbox ---------------- */
+
+function openLightbox(pIndex){
+  currentPhotoIndex = pIndex;
+  showCurrentPhoto();
+  lightbox.classList.add('open');
+}
+
+let activeGroupSubIndex = null;
+
+function showCurrentPhoto(){
+  const section = getActiveSection();
+  if(!section) return;
+  const item = section.photos[currentPhotoIndex];
+  if(!item) return;
+  
+  const isEdit = body.classList.contains('edit-mode');
+  const isText = item.type === 'text';
+  const isGroup = item.type === 'group';
+  
+  if (isText) {
+    lightboxImgWrap.style.display = 'none';
+    lightboxText.style.display = 'block';
+    activeGroupSubIndex = null;
+    
+    const rawContent = item.locked ? decryptData(item.content, sessionPassword) : item.content;
+    lightboxText.innerHTML = rawContent || (isEdit ? '' : '<span style="color:#c7c7c7; font-style:italic;">Empty note</span>');
+    lightboxCaption.style.display = 'none'; 
+ } else if (isGroup && activeGroupSubIndex === null) {
+    lightboxImgWrap.style.display = 'flex';
+    lightboxText.style.display = 'none';
+    lightboxCaption.style.display = 'none'; 
+
+    lightboxImgWrap.innerHTML = '';
+    const selectorGrid = document.createElement('div');
+    // Made the 2x2 larger (600px instead of 400px) with pure white background
+    selectorGrid.style.cssText = 'width:600px; height:600px; max-width:90vw; max-height:90vw; display:grid; grid-template-columns:repeat(2, 1fr); grid-template-rows:repeat(2, 1fr); gap:12px; background:#ffffff; padding:0; border-radius:8px;';
+
+    item.sources.forEach((sourceObj, subIdx) => {
+        const cell = document.createElement('div');
+        cell.style.cssText = 'background:#ffffff; width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:4px; position:relative;';
+        
+        if (sourceObj) {
+            const obj = typeof sourceObj === 'object' ? sourceObj : { src: sourceObj, locked: false };
+            const isSubLocked = obj.locked && !sessionPassword;
+            const srcVal = obj.src;
+
+            const img = document.createElement('img');
+            if (isSubLocked) {
+                img.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNlMGUwZTAiLz48L3N2Zz4=';
+                img.style.cssText = 'max-width:100%; max-height:100%; object-fit:contain; display:block; filter:blur(10px); opacity:0.4;';
+            } else {
+                img.src = obj.locked ? (decryptData(srcVal, sessionPassword) || '') : srcVal;
+                img.style.cssText = 'max-width:100%; max-height:100%; object-fit:contain; display:block;';
+                cell.style.cursor = 'pointer';
+                cell.addEventListener('mouseenter', () => cell.style.opacity = '0.8');
+                cell.addEventListener('mouseleave', () => cell.style.opacity = '1');
+            }
+            img.draggable = false;
+            cell.appendChild(img);
+
+            if (isEdit) {
+                // Individual Lock/Unlock button for each sub-image
+                const subLockBtn = document.createElement('div');
+                subLockBtn.innerHTML = obj.locked ? '🔒' : '🔓';
+                subLockBtn.title = obj.locked ? 'Unlock this image' : 'Lock this image';
+                subLockBtn.style.cssText = 'position:absolute; top:6px; left:6px; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,0.95); display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; z-index:10; border:1px solid var(--line); box-shadow:0 2px 6px rgba(0,0,0,0.05);';
+                subLockBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!state.galleryPassword) {
+                        alert("Please set a Master Password at the top right before locking items.");
+                        return;
+                    }
+                    if (!obj.locked) {
+                        obj.src = encryptData(obj.src, state.galleryPassword);
+                        if(obj.title) obj.title = encryptData(obj.title, state.galleryPassword);
+                        if(obj.desc) obj.desc = encryptData(obj.desc, state.galleryPassword);
+                        obj.locked = true;
+                    } else {
+                        obj.src = decryptData(obj.src, state.galleryPassword) || "";
+                        if(obj.title) obj.title = decryptData(obj.title, state.galleryPassword) || "";
+                        if(obj.desc) obj.desc = decryptData(obj.desc, state.galleryPassword) || "";
+                        obj.locked = false;
+                    }
+                    saveState();
+                    showCurrentPhoto();
+                });
+                cell.appendChild(subLockBtn);
+
+                cell.setAttribute('draggable', 'true');
+                cell.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/subindex', subIdx.toString());
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                cell.addEventListener('dragover', (e) => e.preventDefault());
+                cell.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const fromSub = parseInt(e.dataTransfer.getData('text/subindex'), 10);
+                    const toSub = subIdx;
+                    if (!isNaN(fromSub) && fromSub !== toSub) {
+                        const temp = item.sources[fromSub];
+                        item.sources[fromSub] = item.sources[toSub];
+                        item.sources[toSub] = temp;
+                        saveState();
+                        showCurrentPhoto(); 
+                    }
+                });
+            }
+
+            if (!isSubLocked) {
+                cell.addEventListener('click', () => {
+                    activeGroupSubIndex = subIdx;
+                    showCurrentPhoto();
+                });
+            }
+        }
+        selectorGrid.appendChild(cell);
+    });
+    lightboxImgWrap.appendChild(selectorGrid);
+
+ } else {
+    lightboxImgWrap.style.display = 'flex';
+    lightboxText.style.display = 'none';
+    
+    lightboxImgWrap.innerHTML = '';
+    lightboxImgWrap.appendChild(lightboxImg); 
+
+  
+    const targetObj = isGroup ? item.sources[activeGroupSubIndex] : item;
+    const targetSrc = typeof targetObj === 'object' ? targetObj.src : targetObj;
+    lightboxImg.src = item.locked ? decryptData(targetSrc, sessionPassword) : targetSrc;
+    
+    const rawTitle = item.locked ? (decryptData(targetObj.title, sessionPassword) || "") : (targetObj.title || "");
+    const rawDesc = item.locked ? (decryptData(targetObj.desc, sessionPassword) || "") : (targetObj.desc || "");
+    
+    const hasTitle = rawTitle.trim().length > 0;
+    const hasDesc = rawDesc.trim().length > 0;
+    
+    lightboxTitle.textContent = rawTitle;
+    lightboxDesc.textContent = rawDesc;
+    lightboxTitle.contentEditable = isEdit;
+    lightboxDesc.contentEditable = isEdit;
+    
+    if (!isEdit) {
+      if (!hasTitle && !hasDesc) {
+          lightboxCaption.style.display = 'none'; 
+      } else {
+        lightboxCaption.style.display = 'block';
+        lightboxTitle.style.display = hasTitle ? 'block' : 'none';
+        lightboxDesc.style.display = hasDesc ? 'block' : 'none';
+        lightboxDesc.textContent = rawDesc;
+      }
+    } else {
+      lightboxCaption.style.display = 'block';
+      lightboxTitle.style.display = 'block';
+      lightboxDesc.style.display = 'block';
+    }
+  }
+}
+
+// Make sure closing lightbox resets the group sub-index state
+const originalCloseLightbox = closeLightbox;
+closeLightbox = function() {
+    activeGroupSubIndex = null;
+    originalCloseLightbox();
+};
+function closeLightbox(){ lightbox.classList.remove('open'); currentPhotoIndex = null; }
+
+lightboxClose.addEventListener('click', closeLightbox);
+lightbox.addEventListener('click', (e) => { if(e.target === lightbox) closeLightbox(); });
+
+function getValidGroupIndices(item) {
+    if (!item.sources) return [];
+    let indices = [];
+    for (let i = 0; i < item.sources.length; i++) {
+        if (item.sources[i]) indices.push(i);
+    }
+    return indices;
+}
+
+function findNextUnlockedIndex(startIndex, direction) {
+  const section = getActiveSection();
+  if(!section || section.photos.length <= 1) return startIndex;
+  
+  let i = startIndex;
+  let checks = 0;
+  while(checks < section.photos.length) {
+     i = (i + direction + section.photos.length) % section.photos.length;
+     const targetItem = section.photos[i];
+     if (!targetItem.locked || sessionPassword) return i; 
+     checks++;
+  }
+  return startIndex; 
+}
+
+lightboxPrev.addEventListener('click', () => {
+  if(currentPhotoIndex === null) return;
+  const section = getActiveSection();
+  const item = section.photos[currentPhotoIndex];
+  
+  if (item && item.type === 'group' && activeGroupSubIndex !== null) {
+      const validIndices = getValidGroupIndices(item);
+      const currPos = validIndices.indexOf(activeGroupSubIndex);
+      if (currPos > 0) {
+          activeGroupSubIndex = validIndices[currPos - 1];
+          showCurrentPhoto();
+          return;
+      } else {
+          // Finished going backwards through sub-photos, go to previous main gallery item
+          activeGroupSubIndex = null;
+      }
+  }
+  
+  currentPhotoIndex = findNextUnlockedIndex(currentPhotoIndex, -1);
+  const prevItem = section.photos[currentPhotoIndex];
+  if (prevItem && prevItem.type === 'group') {
+      const validIndices = getValidGroupIndices(prevItem);
+      if (validIndices.length > 0) {
+          activeGroupSubIndex = validIndices[validIndices.length - 1]; // start at bottom-right when entering backwards
+      }
+  } else {
+      activeGroupSubIndex = null;
+  }
+  showCurrentPhoto();
+});
+
+lightboxNext.addEventListener('click', () => {
+  if(currentPhotoIndex === null) return;
+  const section = getActiveSection();
+  const item = section.photos[currentPhotoIndex];
+  
+  if (item && item.type === 'group') {
+      const validIndices = getValidGroupIndices(item);
+      const currPos = activeGroupSubIndex !== null ? validIndices.indexOf(activeGroupSubIndex) : -1;
+      
+      if (currPos < validIndices.length - 1 && currPos !== -2) {
+          activeGroupSubIndex = currPos === -1 ? validIndices[0] : validIndices[currPos + 1];
+          showCurrentPhoto();
+          return;
+      }
+  }
+  
+  activeGroupSubIndex = null;
+  currentPhotoIndex = findNextUnlockedIndex(currentPhotoIndex, 1);
+  showCurrentPhoto();
+});
+document.addEventListener('keydown', (e) => {
+  if(!lightbox.classList.contains('open')) return;
+  if(document.activeElement === lightboxTitle || document.activeElement === lightboxDesc) return;
+  if(e.key === 'Escape') closeLightbox();
+  if(e.key === 'ArrowLeft') lightboxPrev.click();
+  if(e.key === 'ArrowRight') lightboxNext.click();
+});
+
+lightboxTitle.addEventListener('blur', () => {
+  const section = getActiveSection();
+  if(!section) return;
+  const item = section.photos[currentPhotoIndex];
+  if(item) {
+     const raw = lightboxTitle.textContent.trim();
+     if (item.type === 'group' && activeGroupSubIndex !== null) {
+         if (typeof item.sources[activeGroupSubIndex] !== 'object') {
+             item.sources[activeGroupSubIndex] = { src: item.sources[activeGroupSubIndex], title: "", desc: "" };
+         }
+         item.sources[activeGroupSubIndex].title = item.locked ? encryptData(raw, sessionPassword) : raw;
+     } else if (!item.type || item.type === 'image') {
+         item.title = item.locked ? encryptData(raw, sessionPassword) : raw; 
+     }
+     saveState(); 
+  }
+});
+lightboxDesc.addEventListener('blur', () => {
+  const section = getActiveSection();
+  if(!section) return;
+  const item = section.photos[currentPhotoIndex];
+  if(item) {
+     const raw = lightboxDesc.textContent.trim();
+     if (item.type === 'group' && activeGroupSubIndex !== null) {
+         if (typeof item.sources[activeGroupSubIndex] !== 'object') {
+             item.sources[activeGroupSubIndex] = { src: item.sources[activeGroupSubIndex], title: "", desc: "" };
+         }
+         item.sources[activeGroupSubIndex].desc = item.locked ? encryptData(raw, sessionPassword) : raw;
+     } else if (!item.type || item.type === 'image') {
+         item.desc = item.locked ? encryptData(raw, sessionPassword) : raw; 
+     }
+     saveState(); 
+  }
+});
+/* ---------------- Mode toggle ---------------- */
+
+function setMode(mode){
+  if(mode === 'edit'){
+    body.classList.add('edit-mode');
+    body.classList.remove('view-mode');
+    editBtn.classList.add('active');
+    viewBtn.classList.remove('active');
+    brandTitle.contentEditable = true;
+    
+    // Automatically apply the stored password so photos are visible to the creator
+    sessionPassword = state.galleryPassword;
+  } else {
+    body.classList.remove('edit-mode');
+    body.classList.add('view-mode');
+    viewBtn.classList.add('active');
+    editBtn.classList.remove('active');
+    brandTitle.contentEditable = false;
+    
+    // Instantly clear the password so the view mode accurately reflects the locked state
+    sessionPassword = null;
+  }
+  if(lightbox.classList.contains('open')) showCurrentPhoto();
+  render();
+}
+
+editBtn.addEventListener('click', () => setMode('edit'));
+viewBtn.addEventListener('click', () => setMode('view'));
+
+brandTitle.addEventListener('blur', () => {
+  state.title = brandTitle.textContent.trim() || "JC";
+  document.title = state.title;
+  saveState();
+});
+brandTitle.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); brandTitle.blur(); } });
+
+/* ---------------- Right-click / drag protection ---------------- */
+document.addEventListener('contextmenu', (e) => { if(e.target.tagName === 'IMG') e.preventDefault(); });
+lightboxImg.draggable = false;
+
+/* ---------------- Export & Backup Handlers ---------------- */
+
+saveProjectBtn.addEventListener('click', () => {
+  const doc = document.documentElement.cloneNode(true);
+  const dataScript = doc.querySelector('#embeddedDataScript');
+  if(dataScript) dataScript.remove();
+
+  const injected = document.createElement('script');
+  injected.id = 'embeddedDataScript';
+  injected.textContent = `window.__EMBEDDED_GALLERY_DATA__ = ${JSON.stringify(state)};`;
+
+  doc.querySelector('head').appendChild(injected);
+  doc.querySelector('body').setAttribute('class', 'edit-mode'); 
+
+  const htmlString = "<!DOCTYPE html>\n" + doc.outerHTML;
+  const blob = new Blob([htmlString], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const safeName = (state.title || 'gallery').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '-') || 'gallery';
+  a.download = `${safeName}-editable.html`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+exportBtn.addEventListener('click', () => {
+  const doc = document.documentElement.cloneNode(true);
+  const dataScript = doc.querySelector('#embeddedDataScript');
+  if(dataScript) dataScript.remove();
+
+  const exportState = JSON.parse(JSON.stringify(state));
+  // NUKE the password from the exported file so Devs cannot find it
+  exportState.galleryPassword = null; 
+
+  const injected = document.createElement('script');
+  injected.id = 'embeddedDataScript';
+  injected.textContent = `window.__EMBEDDED_GALLERY_DATA__ = ${JSON.stringify(exportState)};`;
+
+  doc.querySelector('head').appendChild(injected);
+  doc.querySelector('body').setAttribute('class', 'view-mode locked');
+  
+  const authContainerRef = doc.querySelector('#authContainer');
+  if(authContainerRef) authContainerRef.innerHTML = '';
+  
+  const toggleRef = doc.querySelector('.mode-toggle');
+  if(toggleRef) toggleRef.remove();
+  
+  const barRef = doc.querySelector('.export-bar');
+  if(barRef) barRef.remove();
+
+  const htmlString = "<!DOCTYPE html>\n" + doc.outerHTML;
+  const blob = new Blob([htmlString], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const safeName = (state.title || 'gallery').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '-') || 'gallery';
+  a.download = `${safeName}-shareable.html`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+/* ---------------- App Initialization ---------------- */
+async function init() {
+  document.title = state.title || "JC";
+  const loaded = await loadInitialState();
+  if (loaded) {
+    state = loaded;
+    resetActivePath();
+  }
+
+  if(window.__EMBEDDED_GALLERY_DATA__){
+    if (body.classList.contains('locked')) {
+      setMode('view');
+    } else {
+      setMode('edit');
+    }
+  } else {
+    setMode('edit');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
