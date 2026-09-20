@@ -559,6 +559,64 @@ function renderTabs(){
   }
 }
 
+// Pulls one photo out of a 2x2 tile.
+// targetIdx = grid position to drop it at (null = right after the tile).
+// Dropping it on a different 2x2 tile moves it into that tile instead.
+function extractFromGroup(groupIdx: number, subIdx: number, targetIdx: number | null) {
+  const section = getActiveSection();
+  if (!section) return;
+  const group = section.photos[groupIdx];
+  if (!group || group.type !== 'group' || !group.sources || !group.sources[subIdx]) return;
+  if (targetIdx === groupIdx) return; // dropped back on its own tile: nothing to do
+
+  const target = targetIdx !== null ? section.photos[targetIdx] : null;
+  const targetIsGroup = !!(target && target.type === 'group');
+
+  if (targetIsGroup && target.sources.length >= 4) {
+    alert("This image block already has the maximum of 4 photos combined.");
+    return;
+  }
+  if (!targetIsGroup && section.photos.length >= MAX_PHOTOS_PER_SECTION && group.sources.length > 1) {
+    alert(`This section is full (${MAX_PHOTOS_PER_SECTION} items max).`);
+    return;
+  }
+
+  const raw = group.sources[subIdx];
+  const obj = typeof raw === 'object' ? raw : { src: raw, title: '', desc: '' };
+  // A photo pulled out of a private tile stays private
+  const isPrivate = !!(obj.locked || group.locked);
+
+  // 1. Take it out of the tile
+  group.sources.splice(subIdx, 1);
+
+  // 2. Tidy up the tile it leaves behind
+  let groupRemoved = false;
+  if (group.sources.length === 0) {
+    section.photos.splice(groupIdx, 1);
+    groupRemoved = true;
+  } else if (group.sources.length === 1) {
+    // Only one photo left, so turn the tile back into a regular photo
+    const last = typeof group.sources[0] === 'object' ? group.sources[0] : { src: group.sources[0], title: '', desc: '' };
+    group.type = 'image';
+    group.src = last.src;
+    group.title = last.title || '';
+    group.desc = last.desc || '';
+    group.locked = !!(last.locked || group.locked);
+    delete group.sources;
+  }
+
+  // 3. Put the photo where it was dropped
+  if (targetIsGroup) {
+    target.sources.push({ src: obj.src, title: obj.title || '', desc: obj.desc || '', locked: isPrivate });
+  } else {
+    let insertAt = targetIdx === null ? groupIdx + 1 : targetIdx;
+    if (groupRemoved && insertAt > groupIdx) insertAt--;
+    section.photos.splice(insertAt, 0, { type: 'image', src: obj.src, title: obj.title || '', desc: obj.desc || '', locked: isPrivate });
+  }
+
+  render();
+}
+
 function renderGallery(){
   galleryArea!.innerHTML = "";
   const section = getActiveSection();
@@ -614,6 +672,18 @@ function renderGallery(){
   const grid = document.createElement('div');
   grid.className = 'grid';
 
+  // Dropping a photo from a 2x2 onto empty space in the grid puts it at the end
+  grid.addEventListener('dragover', (e) => {
+    if (e.dataTransfer!.types.includes('text/groupsub')) e.preventDefault();
+  });
+  grid.addEventListener('drop', (e) => {
+    const subData = e.dataTransfer!.getData('text/groupsub');
+    if (!subData) return;
+    e.preventDefault();
+    const [gStr, sStr] = subData.split(':');
+    extractFromGroup(parseInt(gStr, 10), parseInt(sStr, 10), section.photos.length);
+  });
+
   section.photos.forEach((item: any, pIndex: any) => {
     // Hide private photos when viewing as public
     if (!isEdit && currentViewMode === 'public' && item.locked) return;
@@ -656,6 +726,15 @@ function renderGallery(){
                        subImg.decoding = 'async'; // Prevent main thread blocking
                        subCell.appendChild(subImg);
                    }
+               }
+                              if (isEdit && sourceObj) {
+                   subCell.setAttribute('draggable', 'true');
+                   subCell.style.cursor = 'grab';
+                   subCell.addEventListener('dragstart', (e) => {
+                       e.stopPropagation(); // don't start dragging the whole tile
+                       e.dataTransfer!.setData('text/groupsub', pIndex + ':' + i);
+                       e.dataTransfer!.effectAllowed = 'move';
+                   });
                }
                gridContainer.appendChild(subCell);
            }
@@ -835,7 +914,7 @@ function renderGallery(){
 
        card.addEventListener('dragover', (e) => {
            e.preventDefault();
-           if (e.dataTransfer!.types.includes('text/plain')) {
+                      if (e.dataTransfer!.types.includes('text/plain') || e.dataTransfer!.types.includes('text/groupsub')) {
                card.classList.add('drag-over');
            }
        });
@@ -846,6 +925,16 @@ function renderGallery(){
 
        card.addEventListener('drop', (e) => {
             card.classList.remove('drag-over');
+                        // A photo dragged out of a 2x2 tile
+            const subData = e.dataTransfer!.getData('text/groupsub');
+            if (subData) {
+                e.preventDefault();
+                e.stopPropagation();
+                const [gStr, sStr] = subData.split(':');
+                extractFromGroup(parseInt(gStr, 10), parseInt(sStr, 10), pIndex);
+                return;
+            }
+
             const dragData = e.dataTransfer!.getData('text/plain');
             if (dragData !== "") {
                 e.preventDefault();
@@ -1141,7 +1230,20 @@ function showCurrentPhoto(){
                     saveState();
                     showCurrentPhoto();
                 });
-                cell.appendChild(subLockBtn);
+                                cell.appendChild(subLockBtn);
+
+                // Pull this photo out of the 2x2 and back into the regular grid
+                const popBtn = document.createElement('div');
+                popBtn.innerHTML = '↗';
+                popBtn.title = 'Pull out of this 2x2';
+                popBtn.style.cssText = 'position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,0.95); display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer; z-index:10; border:1px solid var(--line); box-shadow:0 2px 6px rgba(0,0,0,0.05);';
+                popBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const gIdx = currentPhotoIndex;
+                    closeLightbox();
+                    extractFromGroup(gIdx, subIdx, null);
+                });
+                cell.appendChild(popBtn);
 
                 cell.setAttribute('draggable', 'true');
                 cell.addEventListener('dragstart', (e) => {
