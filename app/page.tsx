@@ -99,6 +99,23 @@ function saveState(){
   updateStorageMeter();
 }
 
+// Public-view helpers (private photos inside a 2x2 are hidden too)
+function isSubPrivate(s: any) {
+  return !!(s && typeof s === 'object' && s.locked);
+}
+
+function hidePrivateNow() {
+  return !body.classList.contains('edit-mode') && currentViewMode === 'public';
+}
+
+// True if an item has nothing public to show: a private photo, or a 2x2 whose photos are all private
+function isItemHiddenInPublic(item: any) {
+  if (item.type === 'group' && item.sources) {
+    return item.sources.every((s: any) => !s || isSubPrivate(s));
+  }
+  return !!item.locked;
+}
+
 function getActiveSection() {
   const path = state.activePath;
   if (path.folderIndex !== null) {
@@ -653,15 +670,31 @@ function renderGallery(){
     secToolbar.style.justifyContent = 'flex-end';
     secToolbar.style.marginBottom = '16px';
     
-    const bulkLockBtn = document.createElement('button');
-    const allLocked = section.photos.every((p: any) => p.locked);
+        const bulkLockBtn = document.createElement('button');
+    // A 2x2 counts as private only if every photo inside it is private
+    const isItemPrivate = (p: any) => (p.type === 'group' && p.sources)
+      ? p.sources.every((s: any) => s && typeof s === 'object' && s.locked)
+      : !!p.locked;
+    const allLocked = section.photos.every((p: any) => isItemPrivate(p));
     bulkLockBtn.innerHTML = allLocked ? '🌎 Make Entire Section Public' : '👁️ Make Entire Section Private';
     bulkLockBtn.style.cssText = 'background:none; border:1px solid var(--line); border-radius:16px; padding:6px 14px; font-size:12px; font-family:inherit; cursor:pointer; color:var(--ink); transition: background 0.15s; font-weight:500;';
     bulkLockBtn.addEventListener('mouseenter', () => bulkLockBtn.style.background = '#fafafa');
     bulkLockBtn.addEventListener('mouseleave', () => bulkLockBtn.style.background = 'none');
     
     bulkLockBtn.addEventListener('click', () => {
-        section.photos.forEach((item: any) => { item.locked = !allLocked; });
+                section.photos.forEach((item: any) => {
+          if (item.type === 'group' && item.sources) {
+            item.sources = item.sources.map((s: any) => {
+              if (!s) return s;
+              const o = (typeof s === 'object') ? s : { src: s, title: '', desc: '' };
+              o.locked = !allLocked;
+              return o;
+            });
+            item.locked = false;
+          } else {
+            item.locked = !allLocked;
+          }
+        });
         saveState();
         render();
     });
@@ -685,8 +718,8 @@ function renderGallery(){
   });
 
   section.photos.forEach((item: any, pIndex: any) => {
-    // Hide private photos when viewing as public
-    if (!isEdit && currentViewMode === 'public' && item.locked) return;
+        // Hide private photos, and 2x2 tiles with nothing public left, when viewing as public
+    if (!isEdit && currentViewMode === 'public' && isItemHiddenInPublic(item)) return;
     
     const card = document.createElement('div');
     card.className = 'photo-card';
@@ -697,8 +730,10 @@ function renderGallery(){
            const gridContainer = document.createElement('div');
            gridContainer.style.cssText = 'width:100%; height:100%; display:grid; grid-template-columns:repeat(2, 1fr); grid-template-rows:repeat(2, 1fr); gap:2px; background:#ffffff;';
            
+                      // In Public view, only show the photos in this 2x2 that are public
+           const tileSources = hidePrivateNow() ? item.sources.filter((s: any) => !isSubPrivate(s)) : item.sources;
            for (let i = 0; i < 4; i++) {
-               const sourceObj = item.sources[i];
+               const sourceObj = tileSources[i];
                const subCell = document.createElement('div');
                subCell.style.cssText = 'background:#ffffff; width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;';
                
@@ -860,8 +895,9 @@ function renderGallery(){
       render();
     });
     
-    if(isEdit) {
-       card.appendChild(lockEl);
+        if(isEdit) {
+       // A 2x2 tile has no Public/Private of its own. Open it to set each photo separately.
+       if (item.type !== 'group') card.appendChild(lockEl);
        card.appendChild(removeEl);
 
        if (!item.type || item.type === 'image') {
@@ -961,7 +997,8 @@ function renderGallery(){
                     if (!targetItem.sources) {
                         targetItem.type = 'group';
                         // Convert old string format to object format with empty title/desc
-                        targetItem.sources = [{ src: targetItem.src, title: targetItem.title || "", desc: targetItem.desc || "" }];
+                                                targetItem.sources = [{ src: targetItem.src, title: targetItem.title || "", desc: targetItem.desc || "", locked: !!targetItem.locked }];
+                        targetItem.locked = false; // the 2x2 has no Public/Private of its own
                         delete targetItem.src;
                         delete targetItem.title;
                         delete targetItem.desc;
@@ -975,7 +1012,7 @@ function renderGallery(){
                             const decryptedSrc = sourceItem.locked ? decryptData(sourceItem.src, sessionPassword) : sourceItem.src;
                             const decryptedTitle = sourceItem.locked && sourceItem.title ? decryptData(sourceItem.title, sessionPassword) : (sourceItem.title || "");
                             const decryptedDesc = sourceItem.locked && sourceItem.desc ? decryptData(sourceItem.desc, sessionPassword) : (sourceItem.desc || "");
-                            actualObj = { src: decryptedSrc, title: decryptedTitle, desc: decryptedDesc };
+                                                        actualObj = { src: decryptedSrc, title: decryptedTitle, desc: decryptedDesc, locked: !!sourceItem.locked };
                         }
 
                         if (actualObj && actualObj.src) {
@@ -1181,7 +1218,8 @@ function showCurrentPhoto(){
     // Made the 2x2 larger (600px instead of 400px) with pure white background
     selectorGrid.style.cssText = 'width:600px; height:600px; max-width:90vw; max-height:90vw; display:grid; grid-template-columns:repeat(2, 1fr); grid-template-rows:repeat(2, 1fr); gap:12px; background:#ffffff; padding:0; border-radius:8px;';
 
-    item.sources.forEach((sourceObj: any, subIdx: any) => {
+        item.sources.forEach((sourceObj: any, subIdx: any) => {
+        if (hidePrivateNow() && isSubPrivate(sourceObj)) return; // private photo: not shown in Public view
         const cell = document.createElement('div');
         cell.style.cssText = 'background:#ffffff; width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:4px; position:relative;';
         
@@ -1205,32 +1243,22 @@ function showCurrentPhoto(){
             cell.appendChild(img);
 
             if (isEdit) {
-                // Individual Lock/Unlock button for each sub-image
+                                // Public / Private toggle for each sub-image
                 const subLockBtn = document.createElement('div');
-                subLockBtn.innerHTML = obj.locked ? '🔒' : '🔓';
-                subLockBtn.title = obj.locked ? 'Unlock this image' : 'Lock this image';
-                subLockBtn.style.cssText = 'position:absolute; top:6px; left:6px; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,0.95); display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; z-index:10; border:1px solid var(--line); box-shadow:0 2px 6px rgba(0,0,0,0.05);';
+                subLockBtn.innerHTML = obj.locked ? '👁️ Private' : '🌎 Public';
+                subLockBtn.title = obj.locked ? 'Switch to Public' : 'Switch to Private';
+                subLockBtn.style.cssText = 'position:absolute; top:6px; left:6px; height:26px; padding:0 8px; border-radius:12px; background:rgba(255,255,255,0.95); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:bold; white-space:nowrap; cursor:pointer; z-index:10; border:1px solid var(--line); box-shadow:0 2px 6px rgba(0,0,0,0.05);';
                 subLockBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    if (!state.galleryPassword) {
-                        alert("Please set a Master Password at the top right before locking items.");
-                        return;
+                    // Make sure we're changing the real stored object, not a temporary copy
+                    if (typeof item.sources[subIdx] !== 'object') {
+                        item.sources[subIdx] = { src: item.sources[subIdx], title: '', desc: '' };
                     }
-                    if (!obj.locked) {
-                        obj.src = encryptData(obj.src, state.galleryPassword);
-                        if(obj.title) obj.title = encryptData(obj.title, state.galleryPassword);
-                        if(obj.desc) obj.desc = encryptData(obj.desc, state.galleryPassword);
-                        obj.locked = true;
-                    } else {
-                        obj.src = decryptData(obj.src, state.galleryPassword) || "";
-                        if(obj.title) obj.title = decryptData(obj.title, state.galleryPassword) || "";
-                        if(obj.desc) obj.desc = decryptData(obj.desc, state.galleryPassword) || "";
-                        obj.locked = false;
-                    }
+                    item.sources[subIdx].locked = !item.sources[subIdx].locked;
                     saveState();
                     showCurrentPhoto();
                 });
-                                cell.appendChild(subLockBtn);
+                cell.appendChild(subLockBtn);
 
                 // Pull this photo out of the 2x2 and back into the regular grid
                 const popBtn = document.createElement('div');
@@ -1331,7 +1359,9 @@ function getValidGroupIndices(item: any) {
     if (!item.sources) return [];
     let indices = [];
     for (let i = 0; i < item.sources.length; i++) {
-        if (item.sources[i]) indices.push(i);
+        if (!item.sources[i]) continue;
+        if (hidePrivateNow() && isSubPrivate(item.sources[i])) continue; // skip private in Public view
+        indices.push(i);
     }
     return indices;
 }
@@ -1347,8 +1377,8 @@ function findNextUnlockedIndex(startIndex: any, direction: any) {
      i = (i + direction + section.photos.length) % section.photos.length;
      const targetItem = section.photos[i];
      
-     // Skip private photos if we are navigating the gallery in Public view
-     if (isEdit || currentViewMode === 'private' || !targetItem.locked) return i;
+          // Skip private photos (and 2x2 tiles with nothing public left) in Public view
+     if (isEdit || currentViewMode === 'private' || !isItemHiddenInPublic(targetItem)) return i;
      
      checks++;
   }
@@ -1458,8 +1488,7 @@ function setMode(mode: any){
     viewBtn!.classList.remove('active');
     brandTitle!.contentEditable = "true";
     
-    // Automatically apply the stored password so photos are visible to the creator
-    sessionPassword = state.galleryPassword;
+    sessionPassword = "dummy";
   } else {
     body.classList.remove('edit-mode');
     body.classList.add('view-mode');
@@ -1467,8 +1496,7 @@ function setMode(mode: any){
     editBtn!.classList.remove('active');
     brandTitle!.contentEditable = "false";
     
-    // Instantly clear the password so the view mode accurately reflects the locked state
-    sessionPassword = null;
+    sessionPassword = "dummy";
   }
   if(lightbox!.classList.contains('open')) showCurrentPhoto();
   render();
@@ -1642,6 +1670,29 @@ doc.getElementById('generatePwdBtn')?.addEventListener('click', () => {
   if (input) input.value = generatePassword();
 });
 
+// Older data could mark a whole 2x2 as private. Push that onto each photo inside it,
+// so nothing private becomes public, then clear the 2x2's own flag.
+function normalizeGroups() {
+  const fix = (sec: any) => {
+    (sec.photos || []).forEach((p: any) => {
+      if (p.type === 'group' && p.sources) {
+        p.sources = p.sources.map((s: any) => {
+          if (!s) return s;
+          const o = (typeof s === 'object') ? s : { src: s, title: '', desc: '' };
+          if (p.locked) o.locked = true;
+          return o;
+        });
+        p.locked = false;
+      }
+    });
+  };
+  state.items.forEach((item: any) => {
+    if (item.type === 'section') fix(item);
+    else if (item.type === 'folder') (item.sections || []).forEach(fix);
+  });
+  saveState();
+}
+
 /* ---------------- App Initialization ---------------- */
 async function init() {
   document.title = state.title || "JC";
@@ -1655,7 +1706,8 @@ async function init() {
     state = loaded;
   }
   
-  resetActivePath();
+    resetActivePath();
+  normalizeGroups();
 
   if((window as any).__EMBEDDED_GALLERY_DATA__){
     if (body.classList.contains('locked')) {
