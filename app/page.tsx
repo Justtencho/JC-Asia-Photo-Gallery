@@ -1388,31 +1388,110 @@ lightboxImg.draggable = false;
 
 /* ---------------- Export & Backup Handlers ---------------- */
 
+/* --- Password-protected private export (AES-256-GCM + PBKDF2) --- */
+function bytesToB64(bytes: Uint8Array): string {
+  let bin = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
+  }
+  return btoa(bin);
+}
+
+async function encryptGallery(plainObj: any, password: string) {
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const iterations = 600000;
+
+  const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify(plainObj)));
+
+  return {
+    v: 1,
+    iter: iterations,
+    salt: bytesToB64(salt),
+    iv: bytesToB64(iv),
+    ct: bytesToB64(new Uint8Array(ct))
+  };
+}
+
+function generatePassword(): string {
+  // 31 characters, no look-alikes (no 0/o, 1/l/i). 16 chars is about 79 bits.
+  const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const limit = 256 - (256 % alphabet.length); // avoids modulo bias
+  const chars: string[] = [];
+  while (chars.length < 16) {
+    const buf = crypto.getRandomValues(new Uint8Array(32));
+    for (let i = 0; i < buf.length && chars.length < 16; i++) {
+      if (buf[i] < limit) chars.push(alphabet[buf[i] % alphabet.length]);
+    }
+  }
+  return [chars.slice(0, 4), chars.slice(4, 8), chars.slice(8, 12), chars.slice(12, 16)]
+    .map(g => g.join(''))
+    .join('-');
+}
+
+function checkPasswordStrength(pwd: string): string | null {
+  // Any password is allowed. Only an empty box is blocked, since there'd be nothing to encrypt with.
+  if (!pwd) return 'Type or generate a password in the box next to the export buttons first.';
+  return null;
+}
+
 async function generateExport(type: 'editable' | 'shareable', visibility: 'public' | 'private') {
   try {
+    // The private shareable file requires a strong password
+    let password = '';
+    const isPrivateShare = (type === 'shareable' && visibility === 'private');
+    if (isPrivateShare) {
+      password = ((document.getElementById('exportPassword') as HTMLInputElement | null)?.value || '').trim();
+      const problem = checkPasswordStrength(password);
+      if (problem) { alert(problem); return; }
+    }
+
     const res = await fetch('/template.html');
     let htmlTemplate = await res.text();
 
     // 1. Clone state so we don't modify the live working gallery
     let exportState = JSON.parse(JSON.stringify(state));
-    exportState.galleryPassword = null; 
-    
+    exportState.galleryPassword = null;
+    exportState.authCheck = null;
+
     // 2. If downloading a Public copy, completely erase Private items from the exported JSON
     if (visibility === 'public') {
+      const stripPrivate = (sec: any) => {
+        sec.photos = sec.photos.filter((p: any) => !p.locked);
+        sec.photos.forEach((p: any) => {
+          if (p.type === 'group' && p.sources) {
+            p.sources = p.sources.filter((s: any) => !(s && typeof s === 'object' && s.locked));
+          }
+        });
+        sec.photos = sec.photos.filter((p: any) => p.type !== 'group' || (p.sources && p.sources.length > 0));
+      };
       exportState.items.forEach((item: any) => {
-        if (item.type === 'section') {
-          item.photos = item.photos.filter((p: any) => !p.locked);
-        } else if (item.type === 'folder') {
-          item.sections.forEach((sec: any) => {
-            sec.photos = sec.photos.filter((p: any) => !p.locked);
-          });
-        }
+        if (item.type === 'section') stripPrivate(item);
+        else if (item.type === 'folder') item.sections.forEach(stripPrivate);
       });
     }
 
-    // 3. Inject data
-    const injectedScript = `<script id="embeddedDataScript">window.__EMBEDDED_GALLERY_DATA__ = ${JSON.stringify(exportState)};</script>\n</head>`;
-    htmlTemplate = htmlTemplate.replace('</head>', injectedScript);
+    // 3. Inject data (encrypted for the private shareable file, plain otherwise)
+    let injectedScript: string;
+    if (isPrivateShare) {
+      const payload = await encryptGallery(exportState, password);
+      injectedScript = `<script id="embeddedDataScript">window.__ENCRYPTED_GALLERY__ = ${JSON.stringify(payload)};</script>\n</head>`;
+      // keep the private page out of search engines
+      htmlTemplate = htmlTemplate.replace('</head>', () => '<meta name="robots" content="noindex, nofollow">\n</head>');
+    } else {
+      injectedScript = `<script id="embeddedDataScript">window.__EMBEDDED_GALLERY_DATA__ = ${JSON.stringify(exportState).replace(/</g, '\\u003c')};</script>\n</head>`;
+    }
+    htmlTemplate = htmlTemplate.replace('</head>', () => injectedScript);
 
     // 4. Force view/edit modes on load
     if (type === 'editable') {
@@ -1454,6 +1533,11 @@ doc.getElementById('saveShareablePublicBtn')?.addEventListener('click', (e:any) 
 doc.getElementById('saveShareablePrivateBtn')?.addEventListener('click', (e:any) => { 
   e.target.textContent = 'Generating...'; 
   generateExport('shareable', 'private').then(()=>e.target.textContent='Shareable (Private)'); 
+});
+
+doc.getElementById('generatePwdBtn')?.addEventListener('click', () => {
+  const input = doc.getElementById('exportPassword') as HTMLInputElement | null;
+  if (input) input.value = generatePassword();
 });
 
 /* ---------------- App Initialization ---------------- */
@@ -1521,9 +1605,18 @@ init();
         <div id="galleryArea"></div>
       </main>
 
-      <div className="export-bar">
+            <div className="export-bar">
         <span>Edit mode — add up to 200 items per section. Save an editable copy anytime to back up.</span>
-        <div className="bar-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="bar-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            id="exportPassword"
+            type="text"
+            placeholder="Password for Shareable (Private)"
+            autoComplete="off"
+            spellCheck={false}
+            style={{ padding: '9px 16px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontFamily: 'inherit', fontSize: '13px', width: '250px', outline: 'none' }}
+          />
+          <button id="generatePwdBtn" className="ghost" title="Generate a strong random password">Generate</button>
           <button id="saveProjectBtn" className="ghost" title="Download an HTML copy you can open and continue editing anytime">Download Editable Copy</button>
           <button id="saveShareablePublicBtn">Shareable (Public)</button>
           <button id="saveShareablePrivateBtn">Shareable (Private)</button>

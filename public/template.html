@@ -586,6 +586,70 @@ function decodeUTF8(bytes) { return decodeURIComponent(escape(bytes)); }
 function encryptData(text, key) { return text; }
 function decryptData(b64, key) { return b64; }
 
+/* --- Password-protected private export (AES-256-GCM + PBKDF2) --- */
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+async function decryptGallery(payload, password) {
+  const enc = new TextEncoder();
+  const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: b64ToBytes(payload.salt), iterations: payload.iter, hash: 'SHA-256' },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  );
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(payload.iv) }, key, b64ToBytes(payload.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+function unlockGallery() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed; inset:0; background:#ffffff; z-index:10000; display:flex; align-items:center; justify-content:center; padding:24px;';
+    overlay.innerHTML =
+      '<div style="width:100%; max-width:320px; text-align:center; font-family:\'Raleway\', sans-serif;">' +
+        '<div style="font-size:26px; margin-bottom:18px;">🔒</div>' +
+        '<input id="galleryPwdInput" type="password" placeholder="Password" autocomplete="off" style="width:100%; padding:12px 16px; border:1px solid var(--line); border-radius:24px; font-family:inherit; font-size:15px; outline:none; text-align:center; box-sizing:border-box;">' +
+        '<button id="galleryPwdBtn" style="margin-top:12px; width:100%; padding:12px; border:none; border-radius:24px; background:var(--ink); color:#fff; font-family:inherit; font-size:14px; cursor:pointer;">Unlock</button>' +
+        '<div id="galleryPwdMsg" style="margin-top:14px; font-size:13px; min-height:18px; color:#c0392b;"></div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('#galleryPwdInput');
+    const btn = overlay.querySelector('#galleryPwdBtn');
+    const msg = overlay.querySelector('#galleryPwdMsg');
+    let busy = false;
+
+    async function tryUnlock() {
+      const pwd = input.value.trim();
+      if (busy || !pwd) return;
+      busy = true;
+      btn.textContent = 'Unlocking...';
+      msg.textContent = '';
+      try {
+        const data = await decryptGallery(window.__ENCRYPTED_GALLERY__, pwd);
+        overlay.remove();
+        resolve(data);
+      } catch (e) {
+        msg.textContent = 'Incorrect password';
+        input.value = '';
+        btn.textContent = 'Unlock';
+        busy = false;
+      }
+    }
+
+    btn.addEventListener('click', tryUnlock);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock(); });
+    input.focus();
+  });
+}
+
 // Global Auth State
 let sessionPassword = "dummy"; // Keeps existing components happy - no real passwords anymore
 let currentViewMode = 'private'; // 'public' or 'private'
@@ -632,6 +696,8 @@ function updateStorageMeter() {
 }
 
 function saveState(){
+  // Password-protected private file: never write the decrypted gallery to the viewer's browser storage
+  if (window.__ENCRYPTED_GALLERY__) return;
   saveToDB(STORAGE_KEY, state);
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
   updateStorageMeter();
@@ -1958,6 +2024,12 @@ saveShareablePrivateBtn.addEventListener('click', () => generateExport('shareabl
 /* ---------------- App Initialization ---------------- */
 async function init() {
   document.title = state.title || "JC";
+
+  // Password-protected private file: nothing loads until the password decrypts the data
+  if (window.__ENCRYPTED_GALLERY__ && !window.__EMBEDDED_GALLERY_DATA__) {
+    window.__EMBEDDED_GALLERY_DATA__ = await unlockGallery();
+  }
+
   const loaded = await loadInitialState();
   if (loaded) {
     state = loaded;
