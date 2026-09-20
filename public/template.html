@@ -502,9 +502,10 @@
 
 <div class="export-bar">
   <span>Edit mode — add up to 200 items per section. Save an editable copy anytime to back up.</span>
-  <div class="bar-actions">
-    <button id="saveProjectBtn" class="ghost" title="Download an HTML copy you can open and continue editing anytime">Download Editable Copy</button>
-    <button id="exportBtn" title="Download a locked copy for sharing with viewers">Download Shareable Copy</button>
+  <div class="bar-actions" style="flex-wrap:wrap;">
+        <button id="saveProjectBtn" class="ghost" title="Download an HTML copy you can open and continue editing anytime">Download Editable Copy</button>
+    <button id="saveShareablePublicBtn" title="Shareable copy with private items removed">Shareable (Public)</button>
+    <button id="saveShareablePrivateBtn" title="Shareable copy that includes private items">Shareable (Private)</button>
   </div>
 </div>
 
@@ -581,32 +582,13 @@ async function loadFromDB(key) {
 function encodeUTF8(text) { return unescape(encodeURIComponent(text)); }
 function decodeUTF8(bytes) { return decodeURIComponent(escape(bytes)); }
 
-function encryptData(text, key) {
-    if(!text || !key) return text;
-    const data = encodeUTF8(text);
-    const k = encodeUTF8(key);
-    let res = '';
-    for(let i=0; i<data.length; i++) {
-        res += String.fromCharCode(data.charCodeAt(i) ^ k.charCodeAt(i % k.length));
-    }
-    return btoa(res);
-}
-
-function decryptData(b64, key) {
-    if(!b64 || !key) return b64;
-    try {
-        const data = atob(b64);
-        const k = encodeUTF8(key);
-        let res = '';
-        for(let i=0; i<data.length; i++) {
-            res += String.fromCharCode(data.charCodeAt(i) ^ k.charCodeAt(i % k.length));
-        }
-        return decodeUTF8(res);
-    } catch(e) { return null; } 
-}
+// Encryption disabled - passthrough so the rest of the code keeps working
+function encryptData(text, key) { return text; }
+function decryptData(b64, key) { return b64; }
 
 // Global Auth State
-let sessionPassword = null; 
+let sessionPassword = "dummy"; // Keeps existing components happy - no real passwords anymore
+let currentViewMode = 'private'; // 'public' or 'private'
 
 let state = {
   title: "JC",
@@ -709,8 +691,9 @@ const galleryArea = document.getElementById('galleryArea');
 const editBtn = document.getElementById('editBtn');
 const viewBtn = document.getElementById('viewBtn');
 const fileInput = document.getElementById('fileInput');
-const exportBtn = document.getElementById('exportBtn');
 const saveProjectBtn = document.getElementById('saveProjectBtn');
+const saveShareablePublicBtn = document.getElementById('saveShareablePublicBtn');
+const saveShareablePrivateBtn = document.getElementById('saveShareablePrivateBtn');
 const dragOverlay = document.getElementById('dragOverlay');
 
 const lightbox = document.getElementById('lightbox');
@@ -761,90 +744,37 @@ function render(){
 function renderAuth() {
     authContainer.innerHTML = '';
     const isEdit = body.classList.contains('edit-mode');
-    const isSharedFile = window.__EMBEDDED_GALLERY_DATA__ !== undefined && body.classList.contains('locked');
+    const isSharedFile = body.classList.contains('locked');
 
-    if (isEdit && !isSharedFile) {
-        // Creator's Edit View - Simple persistent input box
+    // Only show the "Viewing as" dropdown when in View mode of the
+    // creator's own file. Exported shareable files never show it.
+    if (!isEdit && !isSharedFile) {
         const wrapper = document.createElement('div');
-        wrapper.className = 'edit-pwd-wrapper';
-        
-        const lbl = document.createElement('label');
-        lbl.textContent = 'Master Password:';
-        
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'edit-pwd-input';
-        input.placeholder = 'None';
-        input.value = state.galleryPassword || '';
+        wrapper.style.display = 'flex';
+        wrapper.style.gap = '8px';
+        wrapper.style.alignItems = 'center';
 
-        input.addEventListener('change', () => {
-            const newPwd = input.value.trim();
-            const oldPwd = state.galleryPassword || '';
-            
-            if (newPwd === oldPwd) return;
+        const lbl = document.createElement('span');
+        lbl.textContent = 'Viewing as: ';
+        lbl.style.fontSize = '12px';
+        lbl.style.color = 'var(--ink)';
 
-            // Re-encrypt/Decrypt all locked photos behind the scenes
-            state.items.forEach(item => {
-                if (item.type === 'section') reencryptSection(item, oldPwd, newPwd);
-                else if (item.type === 'folder') item.sections.forEach(sec => reencryptSection(sec, oldPwd, newPwd));
-            });
+        const select = document.createElement('select');
+        select.innerHTML = `<option value="private">Private (All Photos)</option><option value="public">Public Only</option>`;
+        select.value = currentViewMode;
+        select.style.padding = '4px 8px';
+        select.style.borderRadius = '4px';
+        select.style.border = '1px solid var(--line)';
+        select.style.fontFamily = 'inherit';
 
-            state.galleryPassword = newPwd ? newPwd : null;
-            state.authCheck = newPwd ? encryptData('VALID', newPwd) : null;
-            sessionPassword = state.galleryPassword;
-            
-            saveState();
+        select.addEventListener('change', (e) => {
+            currentViewMode = e.target.value;
             render();
         });
 
         wrapper.appendChild(lbl);
-        wrapper.appendChild(input);
+        wrapper.appendChild(select);
         authContainer.appendChild(wrapper);
-
-    } else {
-        // View Mode / Shared File Flow
-        if (state.authCheck) {
-            if (!sessionPassword) {
-                // Locked - User must type password
-                const input = document.createElement('input');
-                input.type = 'password';
-                input.placeholder = 'Password...';
-                input.className = 'auth-input';
-                
-                const btn = document.createElement('button');
-                btn.textContent = 'Unlock';
-                btn.className = 'auth-btn';
-                
-                const msg = document.createElement('span');
-                msg.className = 'auth-msg';
-
-                btn.addEventListener('click', () => {
-                    const pwd = input.value;
-                    if (decryptData(state.authCheck, pwd) === 'VALID') {
-                        sessionPassword = pwd;
-                        msg.textContent = 'Unlocked!';
-                        msg.style.color = '#27ae60';
-                        setTimeout(() => render(), 750); 
-                    } else {
-                        msg.textContent = 'Incorrect!';
-                        msg.style.color = '#c0392b';
-                        input.value = '';
-                    }
-                });
-                input.addEventListener('keydown', e => { if(e.key==='Enter') btn.click(); });
-                
-                authContainer.appendChild(msg);
-                authContainer.appendChild(input);
-                authContainer.appendChild(btn);
-            } else {
-                // Unlocked View
-                const msg = document.createElement('span');
-                msg.textContent = '🔓 Gallery Unlocked';
-                msg.className = 'auth-msg';
-                msg.style.color = '#27ae60';
-                authContainer.appendChild(msg);
-            }
-        }
     }
 }
 
@@ -1205,31 +1135,13 @@ function renderGallery(){
     
     const bulkLockBtn = document.createElement('button');
     const allLocked = section.photos.every(p => p.locked);
-    bulkLockBtn.innerHTML = allLocked ? '🔓 Unlock Entire Section' : '🔒 Lock Entire Section';
+       bulkLockBtn.innerHTML = allLocked ? '🌎 Make Entire Section Public' : '👁️ Make Entire Section Private';
     bulkLockBtn.style.cssText = 'background:none; border:1px solid var(--line); border-radius:16px; padding:6px 14px; font-size:12px; font-family:inherit; cursor:pointer; color:var(--ink); transition: background 0.15s; font-weight:500;';
     bulkLockBtn.addEventListener('mouseenter', () => bulkLockBtn.style.background = '#fafafa');
     bulkLockBtn.addEventListener('mouseleave', () => bulkLockBtn.style.background = 'none');
     
     bulkLockBtn.addEventListener('click', () => {
-        if (!state.galleryPassword) {
-            alert("Please set a Master Password at the top right before locking items.");
-            return;
-        }
-        section.photos.forEach(item => {
-            if (!allLocked && !item.locked) {
-                if (item.type === 'text') item.content = encryptData(item.content, state.galleryPassword);
-                else item.src = encryptData(item.src, state.galleryPassword);
-                if(item.title) item.title = encryptData(item.title, state.galleryPassword);
-                if(item.desc) item.desc = encryptData(item.desc, state.galleryPassword);
-                item.locked = true;
-            } else if (allLocked && item.locked) {
-                if (item.type === 'text') item.content = decryptData(item.content, state.galleryPassword) || "";
-                else item.src = decryptData(item.src, state.galleryPassword) || "";
-                if(item.title) item.title = decryptData(item.title, state.galleryPassword) || "";
-                if(item.desc) item.desc = decryptData(item.desc, state.galleryPassword) || "";
-                item.locked = false;
-            }
-        });
+        section.photos.forEach(item => { item.locked = !allLocked; });
         saveState();
         render();
     });
@@ -1240,19 +1152,13 @@ function renderGallery(){
   const grid = document.createElement('div');
   grid.className = 'grid';
 
-  section.photos.forEach((item, pIndex) => {
+    section.photos.forEach((item, pIndex) => {
+    // Hide private photos when viewing as public
+    if (!isEdit && currentViewMode === 'public' && item.locked) return;
+
     const card = document.createElement('div');
     card.className = 'photo-card';
-    
-    const isLockedState = item.locked && !sessionPassword;
-
-    if (isLockedState) {
-       card.classList.add('locked-item');
-       const lockOverlay = document.createElement('div');
-       lockOverlay.className = 'locked-overlay';
-       lockOverlay.innerHTML = '🔒';
-       card.appendChild(lockOverlay);
-    }
+    const isLockedState = false; // Never blur photos anymore since encryption is gone
 
     if (!item.type || item.type === 'image' || item.type === 'group') {
        if (item.type === 'group' && item.sources && item.sources.length > 0) {
@@ -1386,32 +1292,18 @@ subCell.appendChild(subImg);
        }
     }
 
-    const lockEl = document.createElement('div');
+        const lockEl = document.createElement('div');
     lockEl.className = 'photo-lock';
-    lockEl.innerHTML = item.locked ? '🔒' : '🔓';
-    lockEl.title = item.locked ? 'Unlock item' : 'Lock item';
+    lockEl.style.width = 'auto'; 
+    lockEl.style.padding = '0 8px';
+    lockEl.style.borderRadius = '12px';
+    lockEl.style.fontSize = '11px';
+    lockEl.style.fontWeight = 'bold';
+    lockEl.innerHTML = item.locked ? '👁️ Private' : '🌎 Public';
+    lockEl.title = item.locked ? 'Switch to Public' : 'Switch to Private';
     lockEl.addEventListener('click', (e) => {
       e.stopPropagation();
-      
-      if (!state.galleryPassword) {
-          alert("Please set a Master Password at the top right before locking items.");
-          return;
-      }
-
-      if (!item.locked) {
-         if (item.type === 'text') item.content = encryptData(item.content, state.galleryPassword);
-         else item.src = encryptData(item.src, state.galleryPassword);
-         if(item.title) item.title = encryptData(item.title, state.galleryPassword);
-         if(item.desc) item.desc = encryptData(item.desc, state.galleryPassword);
-         item.locked = true;
-      } else {
-         if (item.type === 'text') item.content = decryptData(item.content, state.galleryPassword) || "";
-         else item.src = decryptData(item.src, state.galleryPassword) || "";
-         if(item.title) item.title = decryptData(item.title, state.galleryPassword) || "";
-         if(item.desc) item.desc = decryptData(item.desc, state.galleryPassword) || "";
-         item.locked = false;
-      }
-      
+      item.locked = !item.locked;
       saveState();
       render();
     });
@@ -1617,7 +1509,7 @@ function processFiles(fileList) {
       let width = img.width;
       let height = img.height;
       
-      const MAX_SIZE = 1920; 
+      const MAX_SIZE = 1600;
       if (width > height && width > MAX_SIZE) {
         height = Math.round((height * MAX_SIZE) / width);
         width = MAX_SIZE;
@@ -1631,7 +1523,7 @@ function processFiles(fileList) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
       
-      const optimizedDataUrl = canvas.toDataURL('image/webp', 0.92);
+      const optimizedDataUrl = canvas.toDataURL('image/webp', 0.85);
       
       section.photos.push({ type: 'image', src: optimizedDataUrl, title: "", desc: "", locked: false });
       remaining--;
@@ -1746,23 +1638,9 @@ function showCurrentPhoto(){
                 subLockBtn.innerHTML = obj.locked ? '🔒' : '🔓';
                 subLockBtn.title = obj.locked ? 'Unlock this image' : 'Lock this image';
                 subLockBtn.style.cssText = 'position:absolute; top:6px; left:6px; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,0.95); display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; z-index:10; border:1px solid var(--line); box-shadow:0 2px 6px rgba(0,0,0,0.05);';
-                subLockBtn.addEventListener('click', (e) => {
+                                subLockBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    if (!state.galleryPassword) {
-                        alert("Please set a Master Password at the top right before locking items.");
-                        return;
-                    }
-                    if (!obj.locked) {
-                        obj.src = encryptData(obj.src, state.galleryPassword);
-                        if(obj.title) obj.title = encryptData(obj.title, state.galleryPassword);
-                        if(obj.desc) obj.desc = encryptData(obj.desc, state.galleryPassword);
-                        obj.locked = true;
-                    } else {
-                        obj.src = decryptData(obj.src, state.galleryPassword) || "";
-                        if(obj.title) obj.title = decryptData(obj.title, state.galleryPassword) || "";
-                        if(obj.desc) obj.desc = decryptData(obj.desc, state.galleryPassword) || "";
-                        obj.locked = false;
-                    }
+                    obj.locked = !obj.locked;
                     saveState();
                     showCurrentPhoto();
                 });
@@ -1864,12 +1742,14 @@ function findNextUnlockedIndex(startIndex, direction) {
   const section = getActiveSection();
   if(!section || section.photos.length <= 1) return startIndex;
   
+  const isEdit = body.classList.contains('edit-mode');
   let i = startIndex;
   let checks = 0;
   while(checks < section.photos.length) {
      i = (i + direction + section.photos.length) % section.photos.length;
      const targetItem = section.photos[i];
-     if (!targetItem.locked || sessionPassword) return i; 
+     // Skip private photos if we are navigating the gallery in Public view
+     if (isEdit || currentViewMode === 'private' || !targetItem.locked) return i;
      checks++;
   }
   return startIndex; 
@@ -1978,8 +1858,7 @@ function setMode(mode){
     viewBtn.classList.remove('active');
     brandTitle.contentEditable = true;
     
-    // Automatically apply the stored password so photos are visible to the creator
-    sessionPassword = state.galleryPassword;
+    sessionPassword = "dummy";
   } else {
     body.classList.remove('edit-mode');
     body.classList.add('view-mode');
@@ -1987,8 +1866,7 @@ function setMode(mode){
     editBtn.classList.remove('active');
     brandTitle.contentEditable = false;
     
-    // Instantly clear the password so the view mode accurately reflects the locked state
-    sessionPassword = null;
+    sessionPassword = "dummy";
   }
   if(lightbox.classList.contains('open')) showCurrentPhoto();
   render();
@@ -2010,68 +1888,72 @@ lightboxImg.draggable = false;
 
 /* ---------------- Export & Backup Handlers ---------------- */
 
-saveProjectBtn.addEventListener('click', () => {
+function generateExport(type, visibility) {
   const doc = document.documentElement.cloneNode(true);
-  const dataScript = doc.querySelector('#embeddedDataScript');
-  if(dataScript) dataScript.remove();
 
-  const injected = document.createElement('script');
-  injected.id = 'embeddedDataScript';
-  injected.textContent = `window.__EMBEDDED_GALLERY_DATA__ = ${JSON.stringify(state)};`;
+  const oldData = doc.querySelector('#embeddedDataScript');
+  if (oldData) oldData.remove();
 
-  doc.querySelector('head').appendChild(injected);
-  doc.querySelector('body').setAttribute('class', 'edit-mode'); 
-
-  const htmlString = "<!DOCTYPE html>\n" + doc.outerHTML;
-  const blob = new Blob([htmlString], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  const safeName = (state.title || 'gallery').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '-') || 'gallery';
-  a.download = `${safeName}-editable.html`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-});
-
-exportBtn.addEventListener('click', () => {
-  const doc = document.documentElement.cloneNode(true);
-  const dataScript = doc.querySelector('#embeddedDataScript');
-  if(dataScript) dataScript.remove();
-
+  // Clone state so the live gallery isn't touched
   const exportState = JSON.parse(JSON.stringify(state));
-  // NUKE the password from the exported file so Devs cannot find it
-  exportState.galleryPassword = null; 
+  exportState.galleryPassword = null;
+  exportState.authCheck = null;
 
+  // Public copy: erase private items from the exported data entirely
+  if (visibility === 'public') {
+    const stripPrivate = (sec) => {
+      sec.photos = sec.photos.filter(p => !p.locked);
+      sec.photos.forEach(p => {
+        if (p.type === 'group' && p.sources) {
+          p.sources = p.sources.filter(s => !(s && typeof s === 'object' && s.locked));
+        }
+      });
+      sec.photos = sec.photos.filter(p => p.type !== 'group' || (p.sources && p.sources.length > 0));
+    };
+    exportState.items.forEach(item => {
+      if (item.type === 'section') stripPrivate(item);
+      else if (item.type === 'folder') item.sections.forEach(stripPrivate);
+    });
+  }
+
+  // Wipe anything already rendered in the clone, so private photo URLs
+  // can't hide in the exported HTML (the page re-renders itself on load)
+  const wipe = (sel) => { const el = doc.querySelector(sel); if (el) el.innerHTML = ''; };
+  wipe('#galleryArea'); wipe('#tabsNav'); wipe('#authContainer');
+  wipe('#lightboxText'); wipe('#lightboxTitle'); wipe('#lightboxDesc');
+  const lbWrap = doc.querySelector('#lightboxImgWrap');
+  if (lbWrap) lbWrap.innerHTML = '<img id="lightboxImg" src="" alt="">';
+  const lb = doc.querySelector('#lightbox');
+  if (lb) lb.classList.remove('open');
+
+  // Inject data
   const injected = document.createElement('script');
   injected.id = 'embeddedDataScript';
-  injected.textContent = `window.__EMBEDDED_GALLERY_DATA__ = ${JSON.stringify(exportState)};`;
-
+  injected.textContent = 'window.__EMBEDDED_GALLERY_DATA__ = ' +
+    JSON.stringify(exportState).replace(/</g, '\\u003c') + ';';
   doc.querySelector('head').appendChild(injected);
-  doc.querySelector('body').setAttribute('class', 'view-mode locked');
-  
-  const authContainerRef = doc.querySelector('#authContainer');
-  if(authContainerRef) authContainerRef.innerHTML = '';
-  
-  const toggleRef = doc.querySelector('.mode-toggle');
-  if(toggleRef) toggleRef.remove();
-  
-  const barRef = doc.querySelector('.export-bar');
-  if(barRef) barRef.remove();
 
+  // Force edit / view mode on load
+  doc.querySelector('body').setAttribute('class', type === 'editable' ? 'edit-mode' : 'view-mode locked');
+
+  // Download
   const htmlString = "<!DOCTYPE html>\n" + doc.outerHTML;
   const blob = new Blob([htmlString], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   const safeName = (state.title || 'gallery').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '-') || 'gallery';
-  a.download = `${safeName}-shareable.html`;
+  a.download = `${safeName}-${type}-${visibility}.html`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-});
+}
+
+// Editable copy keeps EVERYTHING (public + private), same as page.tsx
+saveProjectBtn.addEventListener('click', () => generateExport('editable', 'private'));
+saveShareablePublicBtn.addEventListener('click', () => generateExport('shareable', 'public'));
+saveShareablePrivateBtn.addEventListener('click', () => generateExport('shareable', 'private'));
 
 /* ---------------- App Initialization ---------------- */
 async function init() {
@@ -2083,6 +1965,7 @@ async function init() {
   }
 
   if(window.__EMBEDDED_GALLERY_DATA__){
+    if (body.classList.contains('view-mode')) body.classList.add('locked');
     if (body.classList.contains('locked')) {
       setMode('view');
     } else {
